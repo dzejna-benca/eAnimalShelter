@@ -1,0 +1,6 @@
+@eAnimalShelter.WebAPI_HostAddress = http://localhost:5036
+
+GET {{eAnimalShelter.WebAPI_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

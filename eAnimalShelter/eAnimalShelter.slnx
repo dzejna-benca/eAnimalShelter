@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="eAnimalShelter.Common.Services/eAnimalShelter.Common.Services.csproj" Id="4889da29-7614-4418-9c4b-ffba2cd5adca" />
+  <Project Path="eAnimalShelter.Model/eAnimalShelter.Model.csproj" />
+  <Project Path="eAnimalShelter.Services/eAnimalShelter.Services.csproj" />
+  <Project Path="eAnimalShelter.WebAPI/eAnimalShelter.WebAPI.csproj" />
+</Solution>

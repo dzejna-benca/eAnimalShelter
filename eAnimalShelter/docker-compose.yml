@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  eAnimalShelterDB:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: eAnimalShelterDB
+    environment:
+      ACCEPT_EULA: Y
+      SA_PASSWORD: Test1234!
+      MSSQL_SA_PASSWORD: Test1234!
+    ports:
+      - "1435:1433"
+    expose:
+      - "1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+
+  eanimalshelter-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: eanimalshelter-api
+    restart: always
+    depends_on:
+      - eAnimalShelterDB
+      - rabbitmq
+    env_file:
+      - .env
+    ports:
+      - "${API_PORT}:5036"
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    restart: always
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin
+
+volumes:
+  sqlserver_data:
