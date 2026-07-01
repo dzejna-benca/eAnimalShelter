@@ -138,10 +138,17 @@ namespace eAnimalShelter.WebAPI.Services.AccessManager
 
         private string GenerateToken(UserResponse user)
         {
-            string secretKeyString = _configuration["JwtToken:SecretKey"] ?? string.Empty;
-            var issuer = _configuration["JwtToken:Issuer"];
-            var audience = _configuration["JwtToken:Audience"];
-            var durationInMinutes = int.Parse(_configuration["JwtToken:DurationInMinutes"] ?? "1");
+            string secretKeyString =
+                Environment.GetEnvironmentVariable("JWT_SECRET_KEY") ?? string.Empty;
+
+            var issuer =
+                Environment.GetEnvironmentVariable("JWT_ISSUER");
+
+            var audience =
+                Environment.GetEnvironmentVariable("JWT_AUDIENCE");
+
+            var durationInMinutes = int.Parse(
+                Environment.GetEnvironmentVariable("JWT_DURATION") ?? "60");
 
             var secretKey = Encoding.ASCII.GetBytes(secretKeyString);
 
