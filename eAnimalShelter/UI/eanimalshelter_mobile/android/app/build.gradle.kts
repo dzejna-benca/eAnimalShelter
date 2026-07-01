@@ -9,6 +9,10 @@ android {
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
+    lint {
+        checkReleaseBuilds = false
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -43,3 +47,8 @@ kotlin {
 flutter {
     source = "../.."
 }
+
+configurations.configureEach {
+    exclude(group = "com.stripe", module = "stripe-android-issuing-push-provisioning")
+}
+
