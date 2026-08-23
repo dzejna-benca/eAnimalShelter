@@ -1,4 +1,4 @@
-##### \# eAnimalShelter
+
 
 ##### 
 
@@ -11,68 +11,6 @@
 ##### 
 
 ##### Desktop aplikacija je namijenjena administratorima šeltera, dok je mobilna aplikacija namijenjena krajnjim korisnicima koji žele pregledavati životinje, podnositi zahtjeve za udomljavanje, prijavljivati se za volontiranje, donirati sredstva i pratiti novosti.
-
-##### 
-
-##### \---
-
-##### 
-
-##### \# Korištene tehnologije
-
-##### 
-
-##### \## Backend
-
-##### 
-
-##### \* ASP.NET Core 9
-
-##### \* Entity Framework Core 9
-
-##### \* SQL Server
-
-##### \* JWT autentifikacija
-
-##### \* Docker
-
-##### \* RabbitMQ (EasyNetQ)
-
-##### \* Stripe API
-
-##### \* FluentValidation
-
-##### \* Mapster
-
-##### 
-
-##### \## Desktop aplikacija
-
-##### 
-
-##### \* Flutter (Windows)
-
-##### \* Provider
-
-##### \* HTTP
-
-##### \* JWT Authentication
-
-##### 
-
-##### \## Mobilna aplikacija
-
-##### 
-
-##### \* Flutter (Android)
-
-##### \* Provider
-
-##### \* HTTP
-
-##### \* JWT Authentication
-
-##### \* Stripe Flutter SDK
 
 ##### 
 
@@ -256,7 +194,7 @@
 
 ##### 
 
-##### Potrebno je raspakovati sljedeće arhive prije pokretanja sistema:
+##### Potrebno je raspakovati arhivu prije pokretanja sistema:
 
 ##### 
 
@@ -264,17 +202,11 @@
 
 ##### Root direktorij projekta	.env-tajne.rar
 
-##### UI/eanimalshelter\_mobile/	.env-tajne.rar
-
-
-
 ##### Napomena
 
 ##### 
 
 ##### \*Root .env sadrži konfiguraciju backend sistema (JWT, baza podataka,RabbitMq, Stripe Secret Key i ostale server konfiguracije).
-
-##### \*Mobilni .env sadrži Stripe Publishable Key koja je potrebna za izvršavanje Stripe plaćanja u mobilnoj aplikaciji.
 
 ##### 
 
