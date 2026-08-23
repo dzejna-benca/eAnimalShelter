@@ -3,9 +3,9 @@ using FluentValidation;
 
 namespace eAnimalShelter.Services.Validators
 {
-    public class UserUpdateValidator : AbstractValidator<UserUpdateRequest>
+    public class AdminUserUpdateValidator : AbstractValidator<AdminUserUpdateRequest>
     {
-        public UserUpdateValidator()
+        public AdminUserUpdateValidator()
         {
             RuleFor(x => x.FirstName)
             .NotEmpty()

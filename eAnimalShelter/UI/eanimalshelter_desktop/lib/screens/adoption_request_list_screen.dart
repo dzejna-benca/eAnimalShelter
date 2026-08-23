@@ -2,6 +2,7 @@ import 'package:data_table_2/data_table_2.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../dialogs/adoption_report_dialog.dart';
 import '../models/adoption_request.dart';
 import '../models/search_result.dart';
 import '../providers/adoption_request_provider.dart';
@@ -311,6 +312,36 @@ class _AdoptionRequestListScreenState
                             "Search",
                           ),
                         ),
+                        ElevatedButton.icon(
+                        onPressed: () async {
+                          try {
+                            var report = await _provider.getReport();
+
+                            if (!mounted) return;
+
+                            showDialog(
+                              context: context,
+                              builder: (_) => AdoptionReportDialog(
+                                report: report,
+                              ),
+                            );
+                          } catch (e) {
+                            if (!mounted) return;
+
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(e.toString()),
+                              ),
+                            );
+                          }
+                        },
+                        icon: const Icon(
+                          Icons.assessment,
+                        ),
+                        label: const Text(
+                          "Make Report",
+                        ),
+                      ),
                       ],
                     ),
                   ),

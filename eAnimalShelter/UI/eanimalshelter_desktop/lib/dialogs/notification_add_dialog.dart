@@ -38,6 +38,9 @@ class _NotificationAddEditDialogState
   int selectedType = 0;
   String recipientType = "user";
 
+  String? _generalError;
+  String? _recipientError;
+
   bool _loading = false;
 
   @override
@@ -70,33 +73,34 @@ class _NotificationAddEditDialogState
         roles = roleResult.items;
       });
     } catch (e) {
-      MessageHelper.showError(
-        context,
-        e.toString(),
-      );
+      if (!mounted) return;
+      setState(() {
+        _generalError = e.toString().replaceFirst("Exception: ", "");
+      });
     }
   }
 
   Future<void> save() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
+    setState(() {
+    _generalError = null;
+    _recipientError = null;
+  });
 
-    if (recipientType == "user" &&
-        selectedUser == null) {
-      MessageHelper.showError(
-        context,
-        "Please select a user.",
-      );
-      return;
-    }
+  if (!_formKey.currentState!.validate()) {
+    return;
+  }
+
+  setState(() {
+    _loading = true;
+  });
+
 
     if (recipientType != "user" &&
         selectedRole == null) {
-      MessageHelper.showError(
-        context,
-        "Please select a role.",
-      );
+      setState(() {
+        _recipientError = "Please select a valid recipient role.";
+        _loading = false;
+      });
       return;
     }
 
@@ -124,10 +128,11 @@ class _NotificationAddEditDialogState
 
       Navigator.pop(context, true);
     } catch (e) {
-      MessageHelper.showError(
-        context,
-        e.toString(),
-      );
+      if (!mounted) return;
+
+      setState(() {
+        _generalError = e.toString().replaceFirst("Exception: ", "");
+      });
     } finally {
       if (mounted) {
         setState(() => _loading = false);
@@ -254,6 +259,20 @@ class _NotificationAddEditDialogState
                         ),
                       ),
 
+                      if (_generalError != null) ...[
+                        const SizedBox(height: 8),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            _generalError!,
+                            style: const TextStyle(
+                              color: Colors.red,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      ],
+
                       const SizedBox(
                           height: 12),
 
@@ -358,6 +377,20 @@ class _NotificationAddEditDialogState
                         ],
                       ),
 
+                      if (_recipientError != null) ...[
+                        const SizedBox(height: 8),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            _recipientError!,
+                            style: const TextStyle(
+                              color: Colors.red,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      ],
+
                       if (recipientType ==
                           "user") ...[
                         const SizedBox(
@@ -405,44 +438,36 @@ class _NotificationAddEditDialogState
                       const SizedBox(
                           height: 20),
 
-                      DropdownButtonFormField<
-                          int>(
+                      DropdownButtonFormField<int>(
                         value: selectedType,
-                        decoration:
-                            _inputDecoration(
+                        decoration: _inputDecoration(
                           "Notification Type",
                         ),
                         items: const [
                           DropdownMenuItem(
                             value: 0,
-                            child: Text(
-                                "Adoption"),
+                            child: Text("Adoption"),
                           ),
                           DropdownMenuItem(
                             value: 1,
-                            child: Text(
-                                "Volunteer"),
+                            child: Text("Volunteer"),
                           ),
                           DropdownMenuItem(
                             value: 2,
-                            child: Text(
-                                "Donation"),
+                            child: Text("Donation"),
                           ),
                           DropdownMenuItem(
                             value: 3,
-                            child: Text(
-                                "Announcement"),
+                            child: Text("Announcement"),
                           ),
                           DropdownMenuItem(
                             value: 4,
-                            child:
-                                Text("System"),
+                            child: Text("System"),
                           ),
                         ],
                         onChanged: (value) {
                           setState(() {
-                            selectedType =
-                                value ?? 0;
+                            selectedType = value ?? 0;
                           });
                         },
                       ),

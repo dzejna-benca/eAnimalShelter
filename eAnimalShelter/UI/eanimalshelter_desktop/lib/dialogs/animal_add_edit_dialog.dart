@@ -12,7 +12,6 @@ import '../providers/animal_species_provider.dart';
 import '../providers/animal_breed_provider.dart';
 import '../providers/animal_image_provider.dart';
 import '../utils/validators.dart';
-import '../utils/message_helper.dart';
 import 'animal_breed_add_dialog.dart';
 import 'animal_species_add_dialog.dart';
 
@@ -58,6 +57,7 @@ class _AnimalAddEditDialogState extends State<AnimalAddEditDialog> {
   DateTime? arrivalDate;
 
   bool loading = true;
+  
 
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
@@ -66,6 +66,7 @@ class _AnimalAddEditDialogState extends State<AnimalAddEditDialog> {
   final _medicalController = TextEditingController();
 
   List<File> selectedImages = [];
+  String? _formError;
 
   bool get isEdit => widget.animal != null;
 
@@ -202,6 +203,10 @@ class _AnimalAddEditDialogState extends State<AnimalAddEditDialog> {
     adoptionStatus: adoptionStatus,
   );
 
+  setState(() {
+    _formError = null;
+  });
+
   try {
     int id;
 
@@ -236,10 +241,9 @@ class _AnimalAddEditDialogState extends State<AnimalAddEditDialog> {
   } catch (e) {
     if (!mounted) return;
 
-    MessageHelper.showError(
-      context,
-      e.toString(),
-    );
+    setState(() {
+      _formError = e.toString().replaceFirst("Exception: ", "");
+    });
   }
 }
 
@@ -284,6 +288,20 @@ class _AnimalAddEditDialogState extends State<AnimalAddEditDialog> {
                               ),
 
                               const SizedBox(height: 20),
+
+                              if (_formError != null) ...[
+                                Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: Text(
+                                    _formError!,
+                                    style: const TextStyle(
+                                      color: Colors.red,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                              ],
 
                               TextFormField(
                                 controller: _nameController,

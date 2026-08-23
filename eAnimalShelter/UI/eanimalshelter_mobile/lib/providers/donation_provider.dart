@@ -40,8 +40,12 @@ class DonationProvider
 Future<void> confirmPayment(
   int donationId,
 ) async {
-  await postVoid(
-    "$donationId/confirm-payment",
-  );
+  try {
+    await postVoid(
+      "$donationId/confirm-payment",
+    );
+  } catch(e) {
+    rethrow;
+  }
 }
 }

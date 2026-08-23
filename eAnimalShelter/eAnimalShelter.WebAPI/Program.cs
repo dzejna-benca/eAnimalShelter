@@ -22,10 +22,22 @@ using EasyNetQ;
 using eAnimalShelter.Services.AdoptionRequestStateMachine;
 using eAnimalShelter.Services.VolunteerAssignmentStateMachine;
 using Stripe;
+using PdfSharpCore.Fonts;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+var stripeSecretKey =
+    Environment.GetEnvironmentVariable("STRIPE_SECRET_KEY");
+
+if (string.IsNullOrWhiteSpace(stripeSecretKey))
+{
+   throw new InvalidOperationException(
+       "Stripe secret key is not configured. Please set STRIPE_SECRET_KEY.");
+}
+
+StripeConfiguration.ApiKey = stripeSecretKey;
+
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IAuthenticatedUserAccessor, HttpAuthenticatedUserAccessor>();
 builder.Services.AddControllers(options =>
@@ -39,8 +51,6 @@ builder.Services.AddSingleton<IBus>(_ =>
         $"password={Environment.GetEnvironmentVariable("RABBITMQ_PASSWORD")}"
     )
 );
-StripeConfiguration.ApiKey =
-    Environment.GetEnvironmentVariable("STRIPE_SECRET_KEY");
 
 builder.Services.AddScoped<BaseAdoptionRequestState>();
 builder.Services.AddScoped<InitialAdoptionRequestState>();
@@ -73,7 +83,7 @@ TypeAdapterConfig<AnimalBreed, AnimalBreedResponse>
 TypeAdapterConfig<AnimalSpecies, AnimalSpeciesResponse>.NewConfig();
 TypeAdapterConfig<Role, RoleResponse>.NewConfig();
 TypeAdapterConfig<User, UserResponse>.NewConfig().IgnoreNullValues(true);
-TypeAdapterConfig<UserUpdateRequest, User>.NewConfig().IgnoreNullValues(true);
+TypeAdapterConfig<AdminUserUpdateRequest, User>.NewConfig().IgnoreNullValues(true);
 TypeAdapterConfig<Announcement, AnnouncementResponse>
     .NewConfig()
     .Map(dest => dest.CreatedByUserName,
@@ -266,7 +276,6 @@ builder.Services.AddScoped<IAnimalService, AnimalService>();
 builder.Services.AddScoped<IAnimalImageService, AnimalImageService>();
 builder.Services.AddScoped<IAdoptionRequestService, AdoptionRequestService>();
 builder.Services.AddScoped<GlobalExceptionFilter>();
-builder.Services.AddScoped<IPdfService, PdfService>();
 builder.Services.AddScoped<IAnimalViewHistoryService,AnimalViewHistoryService>();
 
 builder.Services.AddScoped<ICryptoService, CryptoService>();
@@ -275,6 +284,10 @@ builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
 builder.Services.AddScoped<IAccessManager, AccessManager>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IRecommendationService, RecommendationService>();
+builder.Services.AddScoped<IValidator<CreatePaymentIntentRequest>,CreatePaymentIntentValidator>();
+
+builder.Services.AddScoped<IValidator<RegisterRequest>, RegisterRequestValidator>();
+builder.Services.AddScoped<IValidator<ProfileUpdateRequest>,ProfileUpdateValidator>();
 
 builder.Services.AddScoped<IValidator<AnimalBreedInsertRequest>,AnimalBreedInsertValidator>();
 builder.Services.AddScoped<IValidator<AnimalBreedUpdateRequest>,AnimalBreedUpdateValidator>();
@@ -289,7 +302,7 @@ builder.Services.AddScoped<IValidator<LocationInsertRequest>, LocationInsertVali
 builder.Services.AddScoped<IValidator<LocationUpdateRequest>, LocationUpdateValidator>();
 
 builder.Services.AddScoped<IValidator<UserInsertRequest>, UserInsertValidator>();
-builder.Services.AddScoped<IValidator<UserUpdateRequest>, UserUpdateValidator>();
+builder.Services.AddScoped<IValidator<AdminUserUpdateRequest>, AdminUserUpdateValidator>();
 
 builder.Services.AddScoped<IValidator<FavoriteInsertRequest>, FavoriteInsertValidator>();
 builder.Services.AddScoped<IValidator<FavoriteUpdateRequest>, FavoriteUpdateValidator>();
@@ -416,6 +429,10 @@ builder.Services.AddSwaggerGen(options =>
         }
     });
 });
+builder.Services.AddScoped<IPdfService, PdfService>();
+
+GlobalFontSettings.FontResolver =
+    new CustomFontResolver();
 
 var app = builder.Build();
 using (var scope = app.Services.CreateScope())

@@ -69,7 +69,8 @@ class _VolunteerActivityAddEditDialogState
   bool _saving = false;
 
   String? _startDateError;
- String? _endDateError;
+  String? _endDateError;
+  String? _formError;
 
   bool get isEdit =>
       widget.activity != null;
@@ -142,12 +143,8 @@ class _VolunteerActivityAddEditDialogState
       });
     } catch (e) {
       if (!mounted) return;
-      MessageHelper.showError(
-        context,
-        e.toString(),
-      );
-
       setState(() {
+        _formError = e.toString().replaceFirst("Exception: ", "");
         _loading = false;
       });
     }
@@ -246,6 +243,7 @@ class _VolunteerActivityAddEditDialogState
     setState(() {
       _startDateError = null;
       _endDateError = null;
+      _formError = null;
     });
 
     if (_startDateTime == null) {
@@ -331,15 +329,18 @@ class _VolunteerActivityAddEditDialogState
 
       if (!mounted) return;
 
-      Navigator.pop(
+      Navigator.pop(context, true);
+
+      MessageHelper.showSuccess(
         context,
-        true,
+        isEdit
+            ? "Activity updated successfully."
+            : "Activity added successfully.",
       );
     } catch (e) {
-      MessageHelper.showError(
-        context,
-        e.toString(),
-      );
+      setState(() {
+        _formError = e.toString().replaceFirst("Exception: ", "");
+      });
     } finally {
       if (mounted) {
         setState(() {
@@ -390,6 +391,19 @@ Future<void> _loadLocations() async {
                     mainAxisSize:
                         MainAxisSize.min,
                     children: [
+                      if (_formError != null) ...[
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            _formError!,
+                            style: const TextStyle(
+                              color: Colors.red,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
                       TextFormField(
                         controller:
                             _titleController,

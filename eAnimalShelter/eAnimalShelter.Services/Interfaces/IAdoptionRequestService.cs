@@ -17,6 +17,7 @@ public interface IAdoptionRequestService
     Task<AdoptionRequestResponse> RejectAsync(int id, string? adminComment);
 
     Task<AdoptionRequestResponse> CancelAsync(int id);
+    Task<AdoptionReportResponse> GetReportAsync();
 
 }
 }

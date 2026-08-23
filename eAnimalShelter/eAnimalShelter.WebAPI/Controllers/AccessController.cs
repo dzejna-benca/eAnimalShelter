@@ -41,9 +41,9 @@ public class AccessController : ControllerBase
 
     [HttpPost("Register")]
     public async Task<IActionResult> Register(
-        UserInsertRequest request)
+        RegisterRequest request)
     {
-        await _userService.InsertAsync(request);
+        await _userService.RegisterAsync(request);
 
         return Ok();
     }

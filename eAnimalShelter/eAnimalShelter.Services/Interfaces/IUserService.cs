@@ -9,11 +9,13 @@ namespace eAnimalShelter.Services.Interfaces
             UserResponse,
             UserSearchObject,
             UserInsertRequest,
-            UserUpdateRequest>
+            AdminUserUpdateRequest>
     {
         Task<UserSensitiveResponse?> GetByUsernameAsync(string username);
 
         Task<UserResponse?> GetWithRoleByIdAsync(int id);
         Task ChangePasswordAsync(int userId,UserPasswordChangeRequest request);
+        Task<UserResponse> RegisterAsync(RegisterRequest request);
+        Task<UserResponse> UpdateProfileAsync(int id,ProfileUpdateRequest request);
     }
 }

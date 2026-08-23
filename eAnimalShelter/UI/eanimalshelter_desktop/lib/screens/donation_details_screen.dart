@@ -256,7 +256,7 @@ class _DonationDetailsScreenState
                             const SizedBox(
                                 height: 12),
                             Text(
-                              "${donation!.amount?.toStringAsFixed(2) ?? "0.00"} KM",
+                              "${donation!.amount?.toStringAsFixed(2) ?? "0.00"} €",
                               style:
                                   const TextStyle(
                                 color: Colors

@@ -157,16 +157,19 @@ class _DonateScreenState
       );
     } catch (e) {
       if (!mounted) return;
+      final errorMessage = e.toString().replaceAll(
+        "Exception: ",
+        "",
+      );
 
       showDialog(
         context: context,
         builder: (_) => AlertDialog(
-          title: const Text("Error"),
-          content: Text(e.toString()),
+          title: const Text("Payment failed"),
+          content: Text(errorMessage),
           actions: [
             FilledButton(
-              onPressed: () =>
-                  Navigator.pop(context),
+              onPressed: () => Navigator.pop(context),
               child: const Text("OK"),
             )
           ],

@@ -6,6 +6,7 @@ using eAnimalShelter.Services.Interfaces;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using eAnimalShelter.Services.AdoptionRequestStateMachine;
+using eAnimalShelter.Model.Enums;
 
 namespace eAnimalShelter.Services
 {
@@ -159,16 +160,43 @@ namespace eAnimalShelter.Services
         {
             await _insertValidator.ValidateAndThrowAsync(request);
 
-            var entity = _mapper.Map<AdoptionRequest>(request);
-
-            entity.UserId = _authenticatedUserAccessor.GetUserId()
+            var userId = _authenticatedUserAccessor.GetUserId()
                 ?? throw new UnauthorizedAccessException(
                     "Authenticated user not found.");
 
-            entity.RequestDate = DateTime.UtcNow;
-            entity.Status = Model.Enums.AdoptionRequestStatus.Pending;
+            var animal = await _dbContext.Animals
+                .FirstOrDefaultAsync(x => x.AnimalId == request.AnimalId);
 
-            _dbContext.Set<AdoptionRequest>().Add(entity);
+            if (animal == null)
+            {
+                throw new KeyNotFoundException(
+                    $"Animal with id {request.AnimalId} not found.");
+            }
+
+            if (animal.AdoptionStatus != AnimalStatus.Available)
+            {
+                throw new InvalidOperationException(
+                    "This animal is no longer available for adoption.");
+            }
+
+            bool alreadyPending = await _dbContext.AdoptionRequests.AnyAsync(x =>
+                x.UserId == userId &&
+                x.AnimalId == request.AnimalId &&
+                x.Status == AdoptionRequestStatus.Pending);
+
+            if (alreadyPending)
+            {
+                throw new InvalidOperationException(
+                    "You already have a pending adoption request for this animal.");
+            }
+
+            var entity = _mapper.Map<AdoptionRequest>(request);
+
+            entity.UserId = userId;
+            entity.RequestDate = DateTime.UtcNow;
+            entity.Status = AdoptionRequestStatus.Pending;
+
+            _dbContext.AdoptionRequests.Add(entity);
 
             await _dbContext.SaveChangesAsync();
 
@@ -288,8 +316,7 @@ namespace eAnimalShelter.Services
 
             return await state.RejectAsync(id);
         }
-        public async Task<AdoptionRequestResponse>
-            CancelAsync(int id)
+        public async Task<AdoptionRequestResponse> CancelAsync(int id)
         {
             var entity = await _dbContext.AdoptionRequests
                 .FindAsync(id);
@@ -300,9 +327,50 @@ namespace eAnimalShelter.Services
                     $"Adoption request with ID {id} was not found.");
             }
 
+            if (!_authenticatedUserAccessor.IsInRole("Admin"))
+            {
+                var currentUserId = _authenticatedUserAccessor.GetUserId()
+                    ?? throw new UnauthorizedAccessException(
+                        "Authenticated user not found.");
+
+                if (entity.UserId != currentUserId)
+                {
+                    throw new UnauthorizedAccessException(
+                        "You are not allowed to cancel this adoption request.");
+                }
+            }
+
             var state = _baseState.GetState(entity.Status);
 
             return await state.CancelAsync(id);
+        }
+        public async Task<AdoptionReportResponse> GetReportAsync()
+        {
+            var requests = await _dbContext.AdoptionRequests
+                .ToListAsync();
+
+            return new AdoptionReportResponse
+            {
+                TotalRequests = requests.Count,
+
+                PendingRequests = requests.Count(x =>
+                    x.Status == AdoptionRequestStatus.Pending),
+
+                ApprovedRequests = requests.Count(x =>
+                    x.Status == AdoptionRequestStatus.Approved),
+
+                RejectedRequests = requests.Count(x =>
+                    x.Status == AdoptionRequestStatus.Rejected),
+
+                CancelledRequests = requests.Count(x =>
+                    x.Status == AdoptionRequestStatus.Cancelled),
+
+                RequestsByMonth = requests
+                    .GroupBy(x => x.RequestDate.ToString("MMM"))
+                    .ToDictionary(
+                        g => g.Key,
+                        g => g.Count())
+            };
         }
     }
 }

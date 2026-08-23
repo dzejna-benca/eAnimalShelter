@@ -1,4 +1,5 @@
 using eAnimalShelter.Model.Enums;
+using eAnimalShelter.Model.Exceptions;
 using eAnimalShelter.Model.Requests;
 using eAnimalShelter.Model.Responses;
 using eAnimalShelter.Model.SearchObjects;
@@ -192,55 +193,87 @@ namespace eAnimalShelter.Services
             return _mapper.Map<VolunteerActivityResponse>(entity);
         }
         public async Task<VolunteerActivityDetailsResponse> GetDetailsAsync(int id)
+        {
+            await UpdateExpiredActivities();
+
+            var entity = await _dbContext.VolunteerActivities
+                .Include(x => x.Location)
+                .Include(x => x.CreatedByUser)
+                .Include(x => x.VolunteerAssignments)
+                    .ThenInclude(x => x.User)
+                .FirstOrDefaultAsync(x => x.ActivityId == id);
+
+            var currentUserId = _authenticatedUserAccessor.GetUserId();
+            var isAdmin = _authenticatedUserAccessor.IsInRole("Admin");
+
+            if (entity == null)
             {
-                await UpdateExpiredActivities();
-                var entity = await _dbContext.VolunteerActivities
-                    .Include(x => x.Location)
-                    .Include(x => x.CreatedByUser)
-                    .Include(x => x.VolunteerAssignments)
-                        .ThenInclude(x => x.User)
-                    .FirstOrDefaultAsync(x => x.ActivityId == id);
-                var currentUserId = _authenticatedUserAccessor.GetUserId();
-
-                if (entity == null)
-                {
-                    throw new KeyNotFoundException(
-                        $"Volunteer activity with id {id} not found.");
-                }
-
-                return new VolunteerActivityDetailsResponse
-                {
-                    ActivityId = entity.ActivityId,
-                    Title = entity.Title,
-                    Description = entity.Description,
-                    LocationName = entity.Location.Name,
-                    StartDateTime = entity.StartDateTime,
-                    EndDateTime = entity.EndDateTime,
-                    MaxVolunteers = entity.MaxVolunteers,
-                    Status = entity.Status,
-                    CreatedByUserName =
-                        $"{entity.CreatedByUser.FirstName} {entity.CreatedByUser.LastName}",
-                    IsApplied = entity.VolunteerAssignments.Any(x => x.UserId == currentUserId),
-
-                    Assignments = entity.VolunteerAssignments
-                        .Select(a => new VolunteerAssignmentResponse
-                        {
-                            AssignmentId = a.AssignmentId,
-                            UserId = a.UserId,
-                            UserName = $"{a.User.FirstName} {a.User.LastName}",
-                            ActivityId = a.ActivityId,
-                            ActivityTitle = entity.Title,
-                            AppliedAt = a.AppliedAt,
-                            ApplicationNote = a.ApplicationNote,
-                            Status = a.Status,
-                            HoursWorked = a.HoursWorked,
-                            Email = a.User.Email,
-                            PhoneNumber = a.User.PhoneNumber,
-                            AdminResponseReason = a.AdminResponseReason
-                        })
-                        .ToList()
-                };
+                throw new KeyNotFoundException(
+                    $"Volunteer activity with id {id} not found.");
             }
+
+            List<VolunteerAssignmentResponse> assignments;
+
+            if (isAdmin)
+            {
+                assignments = entity.VolunteerAssignments
+                    .Select(a => new VolunteerAssignmentResponse
+                    {
+                        AssignmentId = a.AssignmentId,
+                        UserId = a.UserId,
+                        UserName = $"{a.User.FirstName} {a.User.LastName}",
+                        ActivityId = a.ActivityId,
+                        ActivityTitle = entity.Title,
+                        AppliedAt = a.AppliedAt,
+                        ApplicationNote = a.ApplicationNote,
+                        Status = a.Status,
+                        HoursWorked = a.HoursWorked,
+                        Email = a.User.Email,
+                        PhoneNumber = a.User.PhoneNumber,
+                        AdminResponseReason = a.AdminResponseReason
+                    })
+                    .ToList();
+            }
+            else
+            {
+                assignments = entity.VolunteerAssignments
+                    .Where(a => a.UserId == currentUserId)
+                    .Select(a => new VolunteerAssignmentResponse
+                    {
+                        AssignmentId = a.AssignmentId,
+                        UserId = a.UserId,
+                        UserName = $"{a.User.FirstName} {a.User.LastName}",
+                        ActivityId = a.ActivityId,
+                        ActivityTitle = entity.Title,
+                        AppliedAt = a.AppliedAt,
+                        ApplicationNote = a.ApplicationNote,
+                        Status = a.Status,
+                        HoursWorked = a.HoursWorked,
+                        Email = a.User.Email,
+                        PhoneNumber = a.User.PhoneNumber,
+                        AdminResponseReason = a.AdminResponseReason
+                    })
+                    .ToList();
+            }
+
+            return new VolunteerActivityDetailsResponse
+            {
+                ActivityId = entity.ActivityId,
+                Title = entity.Title,
+                Description = entity.Description,
+                LocationName = entity.Location.Name,
+                StartDateTime = entity.StartDateTime,
+                EndDateTime = entity.EndDateTime,
+                MaxVolunteers = entity.MaxVolunteers,
+                Status = entity.Status,
+                CreatedByUserName =
+                    $"{entity.CreatedByUser.FirstName} {entity.CreatedByUser.LastName}",
+
+                IsApplied = entity.VolunteerAssignments.Any(x => x.UserId == currentUserId),
+
+                Assignments = assignments
+            };
+        }
 
         public override async Task<VolunteerActivityResponse> UpdateAsync(
             int id,
@@ -258,7 +291,7 @@ namespace eAnimalShelter.Services
 
            if (activity.Status != ActivityStatus.Active)
             {
-                throw new Exception(
+                throw new ClientException(
                     "Only active activities can be edited.");
             }
 

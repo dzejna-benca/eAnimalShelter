@@ -11,9 +11,18 @@ namespace eAnimalShelter.Services.Validators
             RuleFor(x => x)
                 .Custom((request, context) =>
                 {
-                    if (!request.UserId.HasValue && !request.TargetRoleId.HasValue)
+                    if (!request.UserId.HasValue &&
+                        !request.TargetRoleId.HasValue)
                     {
-                        context.AddFailure("Either UserId or TargetRoleId must be provided.");
+                        context.AddFailure(
+                            "Either UserId or TargetRoleId must be provided.");
+                    }
+
+                    if (request.UserId.HasValue &&
+                        request.TargetRoleId.HasValue)
+                    {
+                        context.AddFailure(
+                            "Specify either UserId or TargetRoleId, not both.");
                     }
                 });
 

@@ -1,12 +1,12 @@
+import 'package:eanimalshelter_desktop/models/requests/admin_user_update_request.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
 import '../models/role.dart';
 import '../models/user.dart';
 import '../providers/role_provider.dart';
 import '../providers/user_provider.dart';
 import '../utils/validators.dart';
-import '../utils/message_helper.dart';
+
 
 class UserEditDialog extends StatefulWidget {
   final User user;
@@ -36,6 +36,7 @@ class _UserEditDialogState extends State<UserEditDialog> {
 
   late UserProvider _userProvider;
   late RoleProvider _roleProvider;
+  String? _generalError;
 
   @override
   void initState() {
@@ -70,10 +71,10 @@ class _UserEditDialogState extends State<UserEditDialog> {
       setState(() => _roles = result.items);
     } catch (e) {
       if (!mounted) return;
-       MessageHelper.showError(
-      context,
-      e.toString(),
-      );
+       setState(() {
+        _generalError =
+            e.toString().replaceFirst("Exception: ", "");
+      });
     }
   }
 
@@ -81,28 +82,31 @@ class _UserEditDialogState extends State<UserEditDialog> {
     if (!_formKey.currentState!.validate()) return;
 
     try {
-      setState(() => _loading = true);
+      setState(() {
+      _generalError = null;
+      _loading = true;
+    });
 
-      await _userProvider.update(
-        widget.user.userId!,
-        {
-          "firstName": _firstNameController.text,
-          "lastName": _lastNameController.text,
-          "email": _emailController.text,
-          "phoneNumber": _phoneController.text,
-          "address": _addressController.text,
-          "roleId": _selectedRoleId,
-          "isActive": widget.user.isActive,
-        },
-      );
+     await _userProvider.update(
+      widget.user.userId!,
+      AdminUserUpdateRequest(
+        firstName: _firstNameController.text,
+        lastName: _lastNameController.text,
+        email: _emailController.text,
+        phoneNumber: _phoneController.text,
+        address: _addressController.text,
+        roleId: _selectedRoleId!,
+        isActive: widget.user.isActive ?? true,
+      ).toJson(),
+    );
 
       if (!mounted) return;
       Navigator.pop(context, true);
     } catch (e) {
-       MessageHelper.showError(
-      context,
-      e.toString(),
-      );
+       setState(() {
+        _generalError =
+            e.toString().replaceFirst("Exception: ", "");
+      });
     } finally {
       setState(() => _loading = false);
     }
@@ -218,6 +222,19 @@ class _UserEditDialogState extends State<UserEditDialog> {
                   .toList(),
               onChanged: (v) => setState(() => _selectedRoleId = v),
             ),
+            if (_generalError != null) ...[
+              const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  _generalError!,
+                  style: const TextStyle(
+                    color: Colors.red,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),

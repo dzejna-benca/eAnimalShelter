@@ -91,11 +91,11 @@ Future<void> generateDonationReportPdf(
               pw.SizedBox(height: 10),
 
               pw.Text(
-                "Total Donations: ${report.totalDonations.toStringAsFixed(2)} KM",
+                "Total Donations: ${report.totalDonations.toStringAsFixed(2)} €",
               ),
 
               pw.Text(
-                "Average Donation: ${report.averageDonation.toStringAsFixed(2)} KM",
+                "Average Donation: ${report.averageDonation.toStringAsFixed(2)} €",
               ),
 
               pw.Text(
@@ -173,7 +173,7 @@ Future<void> generateDonationReportPdf(
                             const pw.EdgeInsets.all(
                                 8),
                         child: pw.Text(
-                          "${e.value.toStringAsFixed(2)} KM",
+                          "${e.value.toStringAsFixed(2)} €",
                         ),
                       ),
                     ],

@@ -42,7 +42,7 @@ namespace eAnimalShelter.WebAPI.Controllers
 
         [HttpPut]
         public async Task<ActionResult<UserResponse>> UpdateProfile(
-            [FromBody] UserUpdateRequest request)
+            [FromBody] ProfileUpdateRequest request)
         {
             var userId = _authenticatedUserAccessor.GetUserId();
 
@@ -51,7 +51,8 @@ namespace eAnimalShelter.WebAPI.Controllers
                 throw new ClientException("User is not authenticated.");
             }
 
-            var result = await _userService.UpdateAsync(
+            var result =
+            await _userService.UpdateProfileAsync(
                 userId.Value,
                 request);
 

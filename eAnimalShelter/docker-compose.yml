@@ -40,5 +40,17 @@ services:
       RABBITMQ_DEFAULT_USER: admin
       RABBITMQ_DEFAULT_PASS: admin
 
+  subscriber:
+    build:
+      context: .
+      dockerfile: eAnimalShelter.Subscriber/Dockerfile
+    container_name: eanimalshelter-subscriber
+    restart: always
+    depends_on:
+      - rabbitmq
+      - eAnimalShelterDB
+    env_file:
+      - .env
+
 volumes:
   sqlserver_data:

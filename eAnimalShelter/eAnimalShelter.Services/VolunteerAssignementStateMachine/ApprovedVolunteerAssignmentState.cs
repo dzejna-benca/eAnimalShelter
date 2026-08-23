@@ -1,4 +1,5 @@
 using eAnimalShelter.Model.Enums;
+using eAnimalShelter.Model.Exceptions;
 using eAnimalShelter.Model.Responses;
 using eAnimalShelter.Services.Database;
 using MapsterMapper;
@@ -43,7 +44,7 @@ namespace eAnimalShelter.Services.VolunteerAssignmentStateMachine
 
             if (assignment.Activity.StartDateTime <= DateTime.UtcNow.AddDays(2))
             {
-                throw new Exception(
+                throw new ClientException(
                     "Applications cannot be cancelled less than 2 days before the activity starts.");
             }
 

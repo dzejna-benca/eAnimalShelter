@@ -2,6 +2,7 @@ using eAnimalShelter.Model.Requests;
 using eAnimalShelter.Model.Responses;
 using eAnimalShelter.Model.SearchObjects;
 using eAnimalShelter.Services.Interfaces;
+using eAnimalShelter.WebAPI.Helpers;
 using eAnimalShelter.WebAPI.models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -47,7 +48,9 @@ namespace eAnimalShelter.WebAPI.Controllers
             if (!Directory.Exists(uploadsFolder))
                 Directory.CreateDirectory(uploadsFolder);
 
-            var fileName = $"{Guid.NewGuid()}_{request.File.FileName}";
+            await ImageUploadValidator.ValidateAsync(request.File);
+
+            var fileName = ImageUploadValidator.GenerateFileName(request.File);
             var physicalPath = Path.Combine(uploadsFolder, fileName);
 
             using (var stream = new FileStream(physicalPath, FileMode.Create))

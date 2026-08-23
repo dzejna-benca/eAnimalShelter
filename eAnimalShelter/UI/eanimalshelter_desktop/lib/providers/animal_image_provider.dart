@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:http/http.dart' as http;
-
+import 'package:http_parser/http_parser.dart';
+import 'package:mime/mime.dart';
 import '../models/animal_image.dart';
 import 'auth_provider.dart';
 import 'base_provider.dart';
@@ -30,10 +31,15 @@ class AnimalImageProvider
     request.fields["AnimalId"] =
         animalId.toString();
 
+    final mimeType = lookupMimeType(image.path);
+
     request.files.add(
       await http.MultipartFile.fromPath(
         "file",
         image.path,
+        contentType: mimeType != null
+            ? MediaType.parse(mimeType)
+            : MediaType("image", "jpeg"),
       ),
     );
 

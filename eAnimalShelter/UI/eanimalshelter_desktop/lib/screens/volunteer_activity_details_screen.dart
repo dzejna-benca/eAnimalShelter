@@ -46,6 +46,32 @@ class _VolunteerActivityDetailsScreenState
       _loadData();
     }
   }
+  Future<void> _showSuccessDialog(String message) async {
+  await showDialog(
+    context: context,
+    builder: (_) => AlertDialog(
+      title: const Row(
+        children: [
+          Icon(
+            Icons.check_circle,
+            color: Colors.green,
+          ),
+          SizedBox(width: 10),
+          Text("Success"),
+        ],
+      ),
+      content: Text(message),
+      actions: [
+        ElevatedButton(
+          onPressed: () {
+            Navigator.pop(context);
+          },
+          child: const Text("OK"),
+        ),
+      ],
+    ),
+  );
+}
 
   Future<void> _loadData() async {
     try {
@@ -170,10 +196,10 @@ class _VolunteerActivityDetailsScreenState
 
     await _refresh();
 
-    MessageHelper.showSuccess(
-      context,
-      "Application approved successfully.",
+    await _showSuccessDialog(
+      "Volunteer application has been approved successfully.",
     );
+
   } catch (e) {
     if (!mounted) return;
 
@@ -185,20 +211,36 @@ class _VolunteerActivityDetailsScreenState
 }
 
   Future<void> _rejectAssignment(
-    VolunteerAssignment assignment,
-  ) async {
-    final reason =
-        await _enterReason("Rejection reason");
+  VolunteerAssignment assignment,
+) async {
+  final reason =
+      await _enterReason("Rejection reason");
 
-    if (reason == null) return;
+  if (reason == null) return;
 
+  try {
     await _assignmentProvider.reject(
       assignment.assignmentId!,
       reason,
     );
 
+    if (!mounted) return;
+
     await _refresh();
+
+    await _showSuccessDialog(
+      "Volunteer application has been rejected successfully.",
+    );
+
+  } catch (e) {
+    if (!mounted) return;
+
+    MessageHelper.showError(
+      context,
+      e.toString().replaceFirst("Exception: ", ""),
+    );
   }
+}
 
   @override
   Widget build(BuildContext context) {

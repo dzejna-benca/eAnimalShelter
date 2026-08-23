@@ -74,9 +74,9 @@ class _UserListScreenState extends State<UserListScreen> {
     } catch (e) {
 
       MessageHelper.showError(
-        context,
-        e.toString(),
-      );
+      context,
+      e.toString().replaceFirst("Exception: ", ""),
+    );
     }
     }
   
@@ -108,9 +108,9 @@ class _UserListScreenState extends State<UserListScreen> {
       });
     } catch (e) {
       MessageHelper.showError(
-    context,
-    e.toString(),
-  );
+      context,
+      e.toString().replaceFirst("Exception: ", ""),
+    );
     } finally {
       if (mounted) {
         setState(() {
@@ -121,6 +121,8 @@ class _UserListScreenState extends State<UserListScreen> {
   }
   Future<void> _toggleStatus(User user) async {
   try {
+    final newStatus = !(user.isActive ?? true);
+
     await _userProvider.update(
       user.userId!,
       {
@@ -128,25 +130,28 @@ class _UserListScreenState extends State<UserListScreen> {
         "lastName": user.lastName,
         "email": user.email,
         "roleId": user.roleId,
-        "isActive": !(user.isActive ?? true),
+        "isActive": newStatus,
       },
     );
 
-    _loadUsers();
+    await _loadUsers();
 
     if (!mounted) return;
 
     MessageHelper.showSuccess(
-    context,
-    user.isActive == true
-        ? "User successfully deactivated."
-        : "User successfully activated.",
-  );
+      context,
+      newStatus
+          ? "User successfully activated."
+          : "User successfully deactivated.",
+    );
+
   } catch (e) {
-     MessageHelper.showError(
-    context,
-    e.toString(),
-  );
+    if (!mounted) return;
+
+    MessageHelper.showError(
+      context,
+      e.toString().replaceFirst("Exception: ", ""),
+    );
   }
 }
   Future<void> _confirmToggleStatus(User user) async {

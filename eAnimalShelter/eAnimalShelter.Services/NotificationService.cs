@@ -55,12 +55,6 @@ namespace eAnimalShelter.Services
                     x.UserId == search.UserId.Value);
             }
 
-            if (search?.TargetRoleId.HasValue == true)
-            {
-                query = query.Where(x =>
-                    x.TargetRoleId == search.TargetRoleId.Value);
-            }
-
             if (search?.Type.HasValue == true)
             {
                 query = query.Where(x =>
@@ -127,8 +121,7 @@ namespace eAnimalShelter.Services
             NotificationSearchObject? search)
         {
             return query
-                .Include(x => x.User)
-                .Include(x => x.TargetRole);
+                .Include(x => x.User);
         }
 
         public override async Task<PageResult<NotificationResponse>> GetAllAsync(
@@ -149,15 +142,8 @@ namespace eAnimalShelter.Services
             // - Non-admins can only see notifications sent to them or their role
             if (!isAdmin && currentUserId.HasValue)
             {
-                // Get user's roles
-                var userRoleIds = await _dbContext.Set<UserRole>()
-                    .Where(ur => ur.UserId == currentUserId.Value)
-                    .Select(ur => ur.RoleId)
-                    .ToListAsync();
-
-                query = query.Where(x =>
-                    x.UserId == currentUserId.Value ||
-                    (x.TargetRoleId.HasValue && userRoleIds.Contains(x.TargetRoleId.Value)));
+            
+                query = query.Where(x =>x.UserId == currentUserId.Value);
             }
 
             query = ApplyFilters(query, search);
@@ -191,7 +177,6 @@ namespace eAnimalShelter.Services
 
             var entity = await _dbContext.Set<Notification>()
                 .Include(x => x.User)
-                .Include(x => x.TargetRole)
                 .FirstOrDefaultAsync(x => x.NotificationId == id);
 
             if (entity == null)
@@ -201,23 +186,13 @@ namespace eAnimalShelter.Services
             }
 
             // Check access: admin or user receiving the notification
-            if (!isAdmin && currentUserId.HasValue)
+            if (!isAdmin &&
+                entity.UserId != currentUserId.Value)
             {
-                if (entity.UserId != currentUserId.Value)
-                {
-                    // Check if user is in the target role
-                    var userRoleIds = await _dbContext.Set<UserRole>()
-                        .Where(ur => ur.UserId == currentUserId.Value)
-                        .Select(ur => ur.RoleId)
-                        .ToListAsync();
-
-                    if (!entity.TargetRoleId.HasValue || !userRoleIds.Contains(entity.TargetRoleId.Value))
-                    {
-                        throw new UnauthorizedAccessException(
-                            "You do not have access to this notification.");
-                    }
-                }
+                throw new UnauthorizedAccessException(
+                    "You do not have access to this notification.");
             }
+            
 
             return _mapper.Map<NotificationResponse>(entity);
         }
@@ -227,27 +202,76 @@ namespace eAnimalShelter.Services
         {
             await _insertValidator.ValidateAndThrowAsync(request);
 
-            var entity = _mapper.Map<Notification>(request);
+            NotificationResponse? createdNotification = null;
 
-            entity.DateSent = DateTime.UtcNow;
-            entity.IsRead = false;
+            if (request.UserId.HasValue)
+            {
+                var entity = _mapper.Map<Notification>(request);
 
-            _dbContext.Set<Notification>().Add(entity);
+                entity.DateSent = DateTime.UtcNow;
+                entity.IsRead = false;
+                entity.TargetRoleId = null;
 
-            await _dbContext.SaveChangesAsync();
+                _dbContext.Notifications.Add(entity);
 
-            await _bus.PubSub.PublishAsync(
-                new NotificationCreatedEvent
+                await _dbContext.SaveChangesAsync();
+
+                await _bus.PubSub.PublishAsync(
+                    new NotificationCreatedEvent
+                    {
+                        NotificationId = entity.NotificationId,
+                        UserId = entity.UserId,
+                        Title = entity.Title,
+                        Message = entity.Message
+                    });
+
+                createdNotification =
+                    _mapper.Map<NotificationResponse>(entity);
+            }
+            else
+            {
+                var userIds = await _dbContext.UserRoles
+                    .Where(x => x.RoleId == request.TargetRoleId)
+                    .Select(x => x.UserId)
+                    .Distinct()
+                    .ToListAsync();
+
+                foreach (var userId in userIds)
                 {
-                    UserId = entity.UserId,
-                    TargetRoleId = entity.TargetRoleId,
-                    Title = entity.Title,
-                    Message = entity.Message
-                });
+                    var entity = new Notification
+                    {
+                        UserId = userId,
+                        TargetRoleId = null,
+                        Title = request.Title,
+                        Message = request.Message,
+                        Type = request.Type,
+                        DateSent = DateTime.UtcNow,
+                        IsRead = false
+                    };
 
-            return _mapper.Map<NotificationResponse>(entity);
+                    _dbContext.Notifications.Add(entity);
+
+                    await _dbContext.SaveChangesAsync();
+
+                    await _bus.PubSub.PublishAsync(
+                        new NotificationCreatedEvent
+                        {
+                            NotificationId = entity.NotificationId,
+                            UserId = entity.UserId,
+                            Title = entity.Title,
+                            Message = entity.Message
+                        });
+
+                    if (createdNotification == null)
+                    {
+                        createdNotification =
+                            _mapper.Map<NotificationResponse>(entity);
+                    }
+                }
+            }
+
+            return createdNotification!;
         }
-
         public override async Task<NotificationResponse> UpdateAsync(
             int id,
             NotificationUpdateRequest request)
@@ -265,8 +289,6 @@ namespace eAnimalShelter.Services
             entity.Title = request.Title;
             entity.Message = request.Message;
             entity.Type = request.Type;
-            entity.UserId = request.UserId;
-            entity.TargetRoleId = request.TargetRoleId;
             entity.IsRead = request.IsRead;
 
             if (request.IsRead && !entity.ReadAt.HasValue)
@@ -287,18 +309,9 @@ namespace eAnimalShelter.Services
             if (!currentUserId.HasValue)
                 return 0;
 
-            var userRoleIds = await _dbContext.UserRoles
-                .Where(x => x.UserId == currentUserId.Value)
-                .Select(x => x.RoleId)
-                .ToListAsync();
-
             return await _dbContext.Notifications.CountAsync(x =>
-                !x.IsRead &&
-                (
-                    x.UserId == currentUserId.Value ||
-                    (x.TargetRoleId.HasValue &&
-                    userRoleIds.Contains(x.TargetRoleId.Value))
-                ));
+            !x.IsRead &&
+            x.UserId == currentUserId.Value);
         }
         public async Task MarkAsReadAsync(int notificationId)
         {
@@ -307,19 +320,12 @@ namespace eAnimalShelter.Services
             if (!currentUserId.HasValue)
                 throw new UnauthorizedAccessException();
 
-            var userRoleIds = await _dbContext.UserRoles
-                .Where(x => x.UserId == currentUserId.Value)
-                .Select(x => x.RoleId)
-                .ToListAsync();
-
             var notification = await _dbContext.Notifications
                 .FirstOrDefaultAsync(x =>
                     x.NotificationId == notificationId &&
                     (
-                        x.UserId == currentUserId.Value ||
-                        (x.TargetRoleId.HasValue &&
-                        userRoleIds.Contains(x.TargetRoleId.Value))
-                    ));
+                        x.UserId == currentUserId.Value )
+                    );
 
             if (notification == null)
                 throw new KeyNotFoundException();
@@ -336,19 +342,10 @@ namespace eAnimalShelter.Services
             if (!currentUserId.HasValue)
                 throw new UnauthorizedAccessException();
 
-            var userRoleIds = await _dbContext.UserRoles
-                .Where(x => x.UserId == currentUserId.Value)
-                .Select(x => x.RoleId)
-                .ToListAsync();
-
             var notifications = await _dbContext.Notifications
                 .Where(x =>
-                    !x.IsRead &&
-                    (
-                        x.UserId == currentUserId.Value ||
-                        (x.TargetRoleId.HasValue &&
-                        userRoleIds.Contains(x.TargetRoleId.Value))
-                    ))
+                !x.IsRead &&
+                x.UserId == currentUserId.Value)
                 .ToListAsync();
 
             foreach (var notification in notifications)

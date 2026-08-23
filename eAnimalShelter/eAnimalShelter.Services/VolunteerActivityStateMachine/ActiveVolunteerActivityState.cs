@@ -24,14 +24,22 @@ public class ActiveVolunteerActivityState
                 .FirstOrDefaultAsync(x => x.ActivityId == id);
 
         if (activity == null)
-            throw new KeyNotFoundException();
+            throw new KeyNotFoundException( $"Volunteer activity with id {id} not found.");
 
         activity.Status = ActivityStatus.Completed;
 
-        foreach (var assignment in activity.VolunteerAssignments
-                     .Where(x => x.Status == AssignmentStatus.Pending))
+        foreach (var assignment in activity.VolunteerAssignments)
         {
-            assignment.Status = AssignmentStatus.Rejected;
+            if (assignment.Status == AssignmentStatus.Pending)
+            {
+                assignment.Status = AssignmentStatus.Rejected;
+                assignment.AdminResponseReason =
+                     "Volunteer activity has already been completed.";
+            }
+            else if (assignment.Status == AssignmentStatus.Approved)
+            {
+                assignment.Status = AssignmentStatus.Completed;
+            }
         }
 
         await DbContext.SaveChangesAsync();
@@ -48,15 +56,19 @@ public class ActiveVolunteerActivityState
                 .FirstOrDefaultAsync(x => x.ActivityId == id);
 
         if (activity == null)
-            throw new KeyNotFoundException();
+            throw new KeyNotFoundException( $"Volunteer activity with id {id} not found.");
 
         activity.Status = ActivityStatus.Cancelled;
 
         foreach (var assignment in activity.VolunteerAssignments)
         {
-            if (assignment.Status == AssignmentStatus.Pending)
+            if (assignment.Status == AssignmentStatus.Pending ||
+                assignment.Status == AssignmentStatus.Approved)
             {
                 assignment.Status = AssignmentStatus.Cancelled;
+
+                assignment.AdminResponseReason =
+                    "Volunteer assignment was cancelled because the activity was cancelled.";
             }
         }
 

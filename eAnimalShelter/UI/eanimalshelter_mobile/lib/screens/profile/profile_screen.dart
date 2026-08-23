@@ -142,7 +142,7 @@ class _ProfileScreenState
           await context
               .read<ProfileProvider>()
               .updateProfile(
-                UserUpdateRequest(
+                ProfileUpdateRequest(
                   firstName:
                       firstNameController.text
                           .trim(),
@@ -166,11 +166,6 @@ class _ProfileScreenState
                           ? null
                           : addressController.text
                               .trim(),
-                  isActive:
-                      user?.isActive ??
-                      true,
-                  roleId:
-                      user?.roleId ?? 0,
                 ),
               );
 
@@ -202,16 +197,23 @@ class _ProfileScreenState
         ),
       );
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(
-        SnackBar(
-          content: Text(
-            e.toString().replaceAll(
-              "Exception: ",
-              "",
+      if (!mounted) return;
+      final errorMessage = e.toString().replaceAll(
+        "Exception: ",
+        "",
+      );
+
+      await showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text("Update failed"),
+          content: Text(errorMessage),
+          actions: [
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("OK"),
             ),
-          ),
+          ],
         ),
       );
     } finally {

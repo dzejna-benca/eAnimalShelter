@@ -70,7 +70,7 @@ namespace eAnimalShelter.Services
             await _insertValidator.ValidateAndThrowAsync(request);
 
             var exists = await _dbContext.Locations.AnyAsync(x =>
-                x.Name.ToLower() == request.Name.Trim().ToLower());
+                x.Name.Trim().ToLower() == request.Name.Trim().ToLower());
 
             if (exists)
             {
@@ -81,6 +81,37 @@ namespace eAnimalShelter.Services
             var entity = _mapper.Map<Location>(request);
 
             _dbContext.Set<Location>().Add(entity);
+
+            await _dbContext.SaveChangesAsync();
+
+            return _mapper.Map<LocationResponse>(entity);
+        }
+        public override async Task<LocationResponse> UpdateAsync(
+            int id,
+            LocationUpdateRequest request)
+        {
+            await _updateValidator.ValidateAndThrowAsync(request);
+
+            var entity = await _dbContext.Locations
+                .FirstOrDefaultAsync(x => x.LocationId == id);
+
+            if (entity == null)
+            {
+                throw new KeyNotFoundException(
+                    $"Location with id {id} not found.");
+            }
+
+            var exists = await _dbContext.Locations.AnyAsync(x =>
+                x.LocationId != id &&
+                x.Name.Trim().ToLower() == request.Name.Trim().ToLower());
+
+            if (exists)
+            {
+                throw new ClientException(
+                    $"Location '{request.Name}' already exists.");
+            }
+
+            entity.Name = request.Name;
 
             await _dbContext.SaveChangesAsync();
 

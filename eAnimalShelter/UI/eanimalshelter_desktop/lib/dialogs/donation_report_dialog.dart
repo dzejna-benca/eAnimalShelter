@@ -57,7 +57,7 @@ class DonationReportDialog extends StatelessWidget {
                     child: _buildSummaryCard(
                       title: "Total Donations",
                       value:
-                          "${report.totalDonations.toStringAsFixed(2)} KM",
+                          "${report.totalDonations.toStringAsFixed(2)} €",
                       icon: Icons.payments,
                     ),
                   ),
@@ -66,7 +66,7 @@ class DonationReportDialog extends StatelessWidget {
                     child: _buildSummaryCard(
                       title: "Average Donation",
                       value:
-                          "${report.averageDonation.toStringAsFixed(2)} KM",
+                          "${report.averageDonation.toStringAsFixed(2)} €",
                       icon: Icons.analytics,
                     ),
                   ),
@@ -134,7 +134,7 @@ class DonationReportDialog extends StatelessWidget {
                                     const SizedBox(
                                         width: 15),
                                     Text(
-                                      "${entry.value.toStringAsFixed(2)} KM",
+                                      "${entry.value.toStringAsFixed(2)} €",
                                       style:
                                           const TextStyle(
                                         fontWeight:

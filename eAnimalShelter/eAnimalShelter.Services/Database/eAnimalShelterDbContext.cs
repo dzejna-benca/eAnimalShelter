@@ -39,6 +39,7 @@ namespace eAnimalShelter.Services.Database
         public DbSet<Location> Locations { get; set; }
         public DbSet<RefreshToken> RefreshTokens { get; set; }
         public DbSet<AnimalViewHistory> AnimalViewHistories { get; set; }
+        public DbSet<NotificationDeliveryLog> NotificationDeliveryLogs { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

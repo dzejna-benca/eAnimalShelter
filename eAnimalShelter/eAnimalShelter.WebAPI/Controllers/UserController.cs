@@ -13,7 +13,7 @@ namespace eAnimalShelter.WebAPI.Controllers
         UserResponse,
         UserSearchObject,
         UserInsertRequest,
-        UserUpdateRequest,
+        AdminUserUpdateRequest,
         IUserService>
     {
         public UserController(IUserService service)

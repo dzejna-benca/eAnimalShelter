@@ -20,6 +20,7 @@ namespace eAnimalShelter.WebAPI.Controllers
                 dashboardService;
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpGet]
         public async Task<IActionResult>
             GetStats()

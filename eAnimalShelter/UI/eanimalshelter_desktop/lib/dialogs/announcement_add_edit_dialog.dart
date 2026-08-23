@@ -1,9 +1,7 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-
 import '../models/announcement.dart';
 import '../models/requests/announcement_insert_request.dart';
 import '../models/requests/announcement_update_request.dart';
@@ -34,6 +32,7 @@ class _AnnouncementDialogState
 
   File? selectedImage;
   String? _imageUrl;
+  String? _formError;
 
   String? get fullImageUrl {
     if (_imageUrl == null ||
@@ -98,22 +97,25 @@ class _AnnouncementDialogState
 
       setState(() {
         _imageUrl = uploadedPath;
+        _formError = null;
       });
     } catch (e) {
       if (!mounted) return;
 
-      MessageHelper.showError(
-        context,
-        e.toString(),
-      );
+      setState(() {
+        _formError = e.toString().replaceFirst("Exception: ", "");
+      });
     }
   }
 
   Future<void> _save() async {
-    if (!_formKey.currentState!
-        .validate()) {
-      return;
-    }
+     setState(() {
+    _formError = null;
+  });
+
+  if (!_formKey.currentState!.validate()) {
+    return;
+  }
 
     try {
       final provider =
@@ -146,14 +148,20 @@ class _AnnouncementDialogState
 
       if (!mounted) return;
 
+      MessageHelper.showSuccess(
+        context,
+        isEdit
+            ? "News updated successfully."
+            : "News added successfully.",
+      );
+
       Navigator.pop(context, true);
     } catch (e) {
       if (!mounted) return;
 
-      MessageHelper.showError(
-        context,
-        e.toString(),
-      );
+      setState(() {
+        _formError = e.toString().replaceFirst("Exception: ", "");
+      });
     }
   }
   @override
@@ -207,6 +215,20 @@ class _AnnouncementDialogState
                     ),
 
                     const SizedBox(height: 20),
+
+                    if (_formError != null) ...[
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          _formError!,
+                          style: const TextStyle(
+                            color: Colors.red,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
 
                     if (selectedImage != null)
                       ClipRRect(

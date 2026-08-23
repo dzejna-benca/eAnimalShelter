@@ -1,4 +1,5 @@
 using eAnimalShelter.Model.Enums;
+using eAnimalShelter.Model.Exceptions;
 using eAnimalShelter.Model.Requests;
 using eAnimalShelter.Model.Responses;
 using eAnimalShelter.Model.SearchObjects;
@@ -124,8 +125,34 @@ namespace eAnimalShelter.Services
 
             if (alreadyApplied)
             {
-                throw new Exception(
+                throw new ClientException(
                     "You have already applied for this activity.");
+            }
+            var activity = await _dbContext.VolunteerActivities
+                .FirstOrDefaultAsync(x => x.ActivityId == request.ActivityId);
+
+            if (activity == null)
+            {
+                throw new KeyNotFoundException(
+                    $"Volunteer activity with id {request.ActivityId} not found.");
+            }
+
+            if (!_authenticatedUserAccessor.IsInRole("Volunteer"))
+            {
+                throw new UnauthorizedAccessException(
+                    "Only volunteers can apply for volunteer activities.");
+            }
+
+            if (activity.Status != ActivityStatus.Active)
+            {
+                throw new InvalidOperationException(
+                    "Applications are only allowed for active volunteer activities.");
+            }
+
+            if (activity.StartDateTime <= DateTime.UtcNow)
+            {
+                throw new InvalidOperationException(
+                    "You cannot apply for an activity that has already started.");
             }
 
             var entity = _mapper.Map<VolunteerAssignment>(request);
@@ -195,18 +222,32 @@ namespace eAnimalShelter.Services
 
             return await state.RejectAsync(id, reason);
         }
-        public async Task<VolunteerAssignmentResponse> CancelAsync(
-            int id)
+        public async Task<VolunteerAssignmentResponse> CancelAsync(int id)
         {
-            var assignment = await _dbContext.VolunteerAssignments.Include(x => x.Activity)
+            var assignment = await _dbContext.VolunteerAssignments
+                .Include(x => x.Activity)
                 .FirstOrDefaultAsync(x => x.AssignmentId == id);
 
             if (assignment == null)
+            {
                 throw new KeyNotFoundException(
                     $"Volunteer assignment with id {id} not found.");
+            }
 
-            var state = _baseState.GetState(
-                assignment.Status);
+            if (!_authenticatedUserAccessor.IsInRole("Admin"))
+            {
+                var currentUserId = _authenticatedUserAccessor.GetUserId()
+                    ?? throw new UnauthorizedAccessException(
+                        "Authenticated user not found.");
+
+                if (assignment.UserId != currentUserId)
+                {
+                    throw new UnauthorizedAccessException(
+                        "You are not allowed to cancel this volunteer application.");
+                }
+            }
+
+            var state = _baseState.GetState(assignment.Status);
 
             return await state.CancelAsync(id);
         }

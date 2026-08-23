@@ -1,6 +1,6 @@
 namespace eAnimalShelter.Model.Requests
 {
-    public class UserUpdateRequest
+    public class AdminUserUpdateRequest
     {
         public string FirstName { get; set; } = null!;
         public string LastName { get; set; } = null!;

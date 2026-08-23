@@ -22,7 +22,7 @@ class ProfileProvider extends BaseProvider<User> {
   }
 
   Future<User> updateProfile(
-    UserUpdateRequest request,
+  ProfileUpdateRequest request,
   ) async {
     currentUser = await putCustom(
       "",

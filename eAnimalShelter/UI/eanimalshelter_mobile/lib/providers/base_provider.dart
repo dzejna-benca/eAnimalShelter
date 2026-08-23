@@ -2,12 +2,15 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../utils/app_config.dart';
+import '../utils/navigation_utils.dart';
 import '../models/search_result.dart';
+import '../screens/auth/login_screen.dart';
 import 'auth_provider.dart';
 
 abstract class BaseProvider<T> with ChangeNotifier {
 
   final String endpoint;
+  static bool _isLoggingOut = false;
 
   static String get baseUrl => AppConfig.apiUrl;
 
@@ -30,11 +33,11 @@ abstract class BaseProvider<T> with ChangeNotifier {
 
     var uri = Uri.parse(url);
 
-    var headers = createHeaders();
-
-    var response = await http.get(
+    var response = await sendRequest(
+    () => http.get(
       uri,
-      headers: headers,
+      headers:createHeaders(),
+    ),
     );
 
     if (isValidResponse(response)) {
@@ -56,9 +59,40 @@ abstract class BaseProvider<T> with ChangeNotifier {
     }
 
     throw Exception(
-      "Unknown error occurred.",
+      extractErrorMessage(response),
     );
   }
+
+  String extractErrorMessage(http.Response response) {
+  try {
+    final error = jsonDecode(response.body);
+
+    if (error["errors"] is Map) {
+      return error["errors"]
+          .values
+          .expand((x) => x)
+          .join("\n");
+    }
+
+    if (error["errors"] is List) {
+      return (error["errors"] as List).join("\n");
+    }
+
+    if (error["message"] != null) {
+      return error["message"];
+    }
+
+    if (error["title"] != null) {
+      return error["title"];
+    }
+
+    if (error["detail"] != null) {
+      return error["detail"];
+    }
+  } catch (_) {}
+
+  return "An unexpected error occurred.";
+}
 
   Future<T> getById(int id) async {
     var url = "$baseUrl$endpoint/$id";
@@ -74,21 +108,85 @@ abstract class BaseProvider<T> with ChangeNotifier {
     }
 
     throw Exception(
-      "Unable to load data.",
+      extractErrorMessage(response),
     );
   }
+ Future<http.Response> sendRequest(
+  Future<http.Response> Function() request,
+) async {
+  var response = await request();
+
+  // Ako nije 401, vrati odgovor
+  if (response.statusCode != 401) {
+    return response;
+  }
+
+  // Pokušaj refresh tokena
+  bool refreshed =
+      await AuthProvider.instance!.refreshAccessToken();
+
+  // Refresh nije uspio -> odjavi korisnika
+  if (!refreshed) {
+    if (!_isLoggingOut) {
+      try {
+        _isLoggingOut = true;
+
+        await AuthProvider.instance!.logout();
+
+        await NavigationUtils.showSessionExpiredDialog();
+
+        await NavigationUtils.pushAndRemoveAll(
+          const LoginScreen(),
+        );
+      } finally {
+        _isLoggingOut = false;
+      }
+    }
+
+    throw Exception(
+      "Session expired, please log in again.",
+    );
+  }
+
+  // Refresh uspio -> ponovi originalni request
+  response = await request();
+
+  // Ako i dalje vraća 401, nešto nije u redu
+  if (response.statusCode == 401) {
+    if (!_isLoggingOut) {
+      try {
+        _isLoggingOut = true;
+
+        await AuthProvider.instance!.logout();
+
+        await NavigationUtils.showSessionExpiredDialog();
+
+        await NavigationUtils.pushAndRemoveAll(
+          const LoginScreen(),
+        );
+      } finally {
+        _isLoggingOut = false;
+      }
+    }
+
+    throw Exception("Unauthorized");
+  }
+
+  return response;
+}
 
   Future<T> insert(dynamic request) async {
     var url = "$baseUrl$endpoint";
 
     var uri = Uri.parse(url);
 
-    var response = await http.post(
-      uri,
-      headers: createHeaders(),
-      body: jsonEncode(request),
+    var response = await sendRequest(
+      () => http.post(
+        uri,
+        headers: createHeaders(),
+        body: jsonEncode(request),
+      ),
     );
-
     if (isValidResponse(response)) {
       var data = jsonDecode(response.body);
 
@@ -114,8 +212,7 @@ abstract class BaseProvider<T> with ChangeNotifier {
     }
 
     throw Exception(
-      error["message"] ??
-          "Validation error",
+      extractErrorMessage(response),
     );
   }
 
@@ -127,10 +224,12 @@ abstract class BaseProvider<T> with ChangeNotifier {
 
     var uri = Uri.parse(url);
 
-    var response = await http.put(
-      uri,
-      headers: createHeaders(),
-      body: jsonEncode(request),
+    var response = await sendRequest(
+      () => http.put(
+        uri,
+        headers: createHeaders(),
+        body: jsonEncode(request),
+      ),
     );
 
     if (isValidResponse(response)) {
@@ -158,8 +257,7 @@ abstract class BaseProvider<T> with ChangeNotifier {
     }
 
     throw Exception(
-      error["message"] ??
-          "Validation error",
+      extractErrorMessage(response),
     );
 
     
@@ -168,10 +266,12 @@ abstract class BaseProvider<T> with ChangeNotifier {
   Uri uri,
 ) async {
   try {
-    return await http.get(
+    return await sendRequest(
+    () => http.get(
       uri,
       headers: createHeaders(),
-    );
+    ),
+  );
   } on http.ClientException {
     throw Exception(
       "Unable to connect to server.",
@@ -192,14 +292,16 @@ abstract class BaseProvider<T> with ChangeNotifier {
 
     var uri = Uri.parse(url);
 
-    var response = await http.delete(
-      uri,
-      headers: createHeaders(),
+    var response = await sendRequest(
+      () => http.delete(
+        uri,
+        headers: createHeaders(),
+      ),
     );
 
     if (!isValidResponse(response)) {
       throw Exception(
-        "Delete failed.",
+        extractErrorMessage(response),
       );
     }
   }
@@ -211,7 +313,6 @@ abstract class BaseProvider<T> with ChangeNotifier {
       response.statusCode < 300) {
     return true;
   }
-
   if (response.statusCode == 401) {
     throw Exception("Unauthorized");
   }
@@ -319,10 +420,12 @@ abstract class BaseProvider<T> with ChangeNotifier {
       url += "/$path";
     }
 
-    var response = await http.post(
-      Uri.parse(url),
-      headers: createHeaders(),
-      body: jsonEncode(request),
+    var response = await sendRequest(
+      () => http.post(
+        Uri.parse(url),
+        headers: createHeaders(),
+        body: jsonEncode(request),
+      ),
     );
 
     if (isValidResponse(response)) {
@@ -360,10 +463,12 @@ abstract class BaseProvider<T> with ChangeNotifier {
       url += "/$path";
     }
 
-    var response = await http.put(
-      Uri.parse(url),
-      headers: createHeaders(),
-      body: jsonEncode(request),
+    var response = await sendRequest(
+      () => http.put(
+        Uri.parse(url),
+        headers: createHeaders(),
+        body: jsonEncode(request),
+      ),
     );
 
     if (isValidResponse(response)) {
@@ -408,16 +513,20 @@ abstract class BaseProvider<T> with ChangeNotifier {
     url += "/$path";
   }
 
-  var response = await http.put(
+ var response = await sendRequest(
+  () => http.put(
     Uri.parse(url),
     headers: createHeaders(),
     body: request == null
         ? null
         : jsonEncode(request),
-  );
+  ),
+);
 
   if (!isValidResponse(response)) {
-    throw Exception("Request failed.");
+    throw Exception(
+      extractErrorMessage(response),
+    );
   }
 }
   Future<dynamic> postRaw(
@@ -430,15 +539,13 @@ abstract class BaseProvider<T> with ChangeNotifier {
     url += "/$path";
   }
 
-  final response = await http.post(
-    Uri.parse(url),
-    headers: createHeaders(),
-    body: jsonEncode(request),
+  final response = await sendRequest(
+    () => http.post(
+      Uri.parse(url),
+      headers: createHeaders(),
+      body: jsonEncode(request),
+    ),
   );
-
-  print("POST $url");
-  print("STATUS: ${response.statusCode}");
-  print("BODY: ${response.body}");
 
   if (response.statusCode >= 200 &&
       response.statusCode < 300) {
@@ -451,7 +558,7 @@ abstract class BaseProvider<T> with ChangeNotifier {
 
   if (response.body.trim().isEmpty) {
     throw Exception(
-        "Server returned ${response.statusCode}");
+        extractErrorMessage(response));
   }
 
   try {
@@ -467,8 +574,7 @@ abstract class BaseProvider<T> with ChangeNotifier {
     }
 
     throw Exception(
-      error["message"] ??
-          "Server returned ${response.statusCode}",
+      extractErrorMessage(response)
     );
   } catch (_) {
     throw Exception(
@@ -487,7 +593,7 @@ Future<List<int>> downloadFile(String path) async {
   Uri.parse(url),
 );
   if (!isValidResponse(response)) {
-    throw Exception("Unable to download file.");
+    throw Exception(extractErrorMessage(response));
   }
 
   return response.bodyBytes;
@@ -507,9 +613,7 @@ Future<List<TItem>> getRawList<TItem>(
     return List<TItem>.from(data);
   }
 
-  throw Exception(
-    "Unable to load data.",
-  );
+  throw Exception(extractErrorMessage(response));
 }
 
 Future<void> postVoid(
@@ -517,14 +621,16 @@ Future<void> postVoid(
 ) async {
   var url = "$baseUrl$endpoint/$path";
 
-  final response = await http.post(
-    Uri.parse(url),
-    headers: createHeaders(),
+ final response = await sendRequest(
+    () => http.post(
+      Uri.parse(url),
+      headers: createHeaders(),
+    ),
   );
 
   if (!isValidResponse(response)) {
     throw Exception(
-      "Request failed.",
+      extractErrorMessage(response),
     );
   }
 }
@@ -539,7 +645,7 @@ Future<T> getRaw<T>(String path) async {
     return jsonDecode(response.body) as T;
   }
 
-  throw Exception("Unable to load data.");
+  throw Exception(extractErrorMessage(response));
 }
 Future<List<T>> getList({
   Map<String, dynamic>? filter,
@@ -566,6 +672,6 @@ Future<List<T>> getList({
     );
   }
 
-  throw Exception("Unable to load data.");
+  throw Exception(extractErrorMessage(response));
 }
 }

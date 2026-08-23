@@ -6,8 +6,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/register_request.dart';
 
 class AuthProvider extends ChangeNotifier {
+  static AuthProvider? instance;
   static String? accessToken;
   static String? refreshToken;
+  static Future<bool>? _refreshFuture;
+  static bool _isRefreshing = false;
 
   String? role;
 
@@ -16,10 +19,16 @@ class AuthProvider extends ChangeNotifier {
   String? email;
   String? phoneNumber;
 
+  AuthProvider() {
+    instance = this;
+  }
+
   bool isAuthenticated = false;
 
   final String _baseUrl =
     "${AppConfig.apiUrl}Access";
+
+  
 
   Future<String> login(
   String username,
@@ -40,9 +49,6 @@ class AuthProvider extends ChangeNotifier {
       }),
     );
 
-    print("STATUS: ${response.statusCode}");
-    print("BODY: ${response.body}");
-
     if (response.statusCode >= 200 &&
         response.statusCode < 300) {
       final data = jsonDecode(response.body);
@@ -57,9 +63,9 @@ class AuthProvider extends ChangeNotifier {
       email = data["email"];
       phoneNumber = data["phoneNumber"];
 
-      isAuthenticated = true;
-
       await saveAuthData();
+
+      isAuthenticated = true;
 
       notifyListeners();
 
@@ -70,8 +76,6 @@ class AuthProvider extends ChangeNotifier {
       "Status ${response.statusCode}: ${response.body}",
     );
   } catch (e) {
-    print("LOGIN ERROR:");
-    print(e);
     rethrow;
   }
 }
@@ -86,84 +90,42 @@ class AuthProvider extends ChangeNotifier {
     refreshToken = null;
 
     role = null;
+    firstName = null;
+    lastName = null;
+    email = null;
+    phoneNumber = null;
 
     isAuthenticated = false;
 
     notifyListeners();
   }
-  Future<void> saveAuthData() async {
-    final prefs =
-        await SharedPreferences.getInstance();
 
-    await prefs.setString(
-      "accessToken",
-      accessToken ?? "",
-    );
 
-    await prefs.setString(
-      "refreshToken",
-      refreshToken ?? "",
-    );
 
-    await prefs.setString(
-      "role",
-      role ?? "",
-    );
-
-    await prefs.setString(
-      "firstName",
-      firstName ?? "",
-    );
-
-    await prefs.setString(
-      "lastName",
-      lastName ?? "",
-    );
-
-      await prefs.setString(
-      "email",
-      email ?? "",
-    );
-
-      await prefs.setString(
-      "phoneNumber",
-      phoneNumber ?? "",
-    );
+  Future<void> forceLogout() async {
+    await logout();
   }
-  Future<bool> tryAutoLogin() async {
-    final prefs =
-        await SharedPreferences.getInstance();
-
-    accessToken =
-        prefs.getString("accessToken");
-
-    refreshToken =
-        prefs.getString("refreshToken");
-
-    role =
-        prefs.getString("role");
-
-    firstName =
-        prefs.getString("firstName");
-
-    lastName =
-        prefs.getString("lastName");
-
-    email =
-        prefs.getString("email");
+  Future<void> saveAuthData() async 
+  { 
+    final prefs = await SharedPreferences.getInstance(); 
     
-    phoneNumber =
-        prefs.getString("phoneNumber");
-
-    if (accessToken == null ||
-        accessToken!.isEmpty) {
-      return false;
+    await prefs.setString( "accessToken", accessToken ?? "", );
+    
+    await prefs.setString( "refreshToken", refreshToken ?? "", ); 
+    
+    await prefs.setString( "role", role ?? "", ); 
+    
+    await prefs.setString( "firstName", firstName ?? "", ); 
+    
+    await prefs.setString( "lastName", lastName ?? "", ); 
+    
+    await prefs.setString( "email", email ?? "", ); 
+    
+    await prefs.setString( "phoneNumber", phoneNumber ?? "", ); 
+    
     }
-
-    isAuthenticated = true;
-
-    return true;
-  }
+  
+ 
   Future<void> register(
     RegisterRequest request,
   ) async {
@@ -186,4 +148,78 @@ class AuthProvider extends ChangeNotifier {
       "Registration failed",
     );
   }
+  Future<bool> _doRefresh() async {
+
+  if (refreshToken == null ||
+      refreshToken!.isEmpty) {
+    return false;
+  }
+
+  final response = await http.post(
+      Uri.parse("$_baseUrl/LoginWithRefreshToken"),
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: jsonEncode({
+        "refreshToken": refreshToken,
+      }),
+    );
+
+    if (response.statusCode >= 200 &&
+        response.statusCode < 300) {
+
+      final data = jsonDecode(response.body);
+
+      accessToken = data["accessToken"];
+      refreshToken = data["refreshToken"];
+
+      role = data["role"];
+      firstName = data["firstName"];
+      lastName = data["lastName"];
+      email = data["email"];
+      phoneNumber = data["phoneNumber"];
+
+      await saveAuthData();
+
+      notifyListeners();
+
+      return true;
+    }
+
+    await logout();
+
+    return false;
+  }
+ Future<bool> refreshAccessToken() async {
+  if (_isRefreshing) {
+    return await _refreshFuture!;
+  }
+
+  _isRefreshing = true;
+
+  _refreshFuture = _doRefresh();
+
+  final result = await _refreshFuture!;
+
+  _isRefreshing = false;
+  _refreshFuture = null;
+
+  return result;
+}
+  Future<bool> tryAutoLogin() async { 
+    final prefs = await SharedPreferences.getInstance();
+     accessToken = prefs.getString("accessToken"); 
+     refreshToken = prefs.getString("refreshToken"); 
+     role = prefs.getString("role"); 
+     firstName = prefs.getString("firstName"); 
+     lastName = prefs.getString("lastName"); 
+     email = prefs.getString("email"); 
+     phoneNumber = prefs.getString("phoneNumber"); 
+     if (accessToken == null || accessToken!.isEmpty)
+      { 
+        return false; 
+      } 
+      isAuthenticated = true; 
+      return true; 
+      }
 }

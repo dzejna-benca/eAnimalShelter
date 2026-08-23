@@ -49,5 +49,11 @@ namespace eAnimalShelter.WebAPI.Controllers
         {
             return await _service.CancelAsync(id);
         }
+        [Authorize(Roles = "Admin")]
+        [HttpGet("report")]
+        public async Task<ActionResult<AdoptionReportResponse>> GetReport()
+        {
+            return Ok(await _service.GetReportAsync());
+        }
     }
 }

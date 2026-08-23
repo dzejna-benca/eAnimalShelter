@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../models/requests/user_password_change_request.dart';
 import '../providers/profile_provider.dart';
+import '../utils/message_helper.dart';
 
 class ChangePasswordDialog extends StatefulWidget {
   const ChangePasswordDialog({super.key});
@@ -30,8 +31,16 @@ class _ChangePasswordDialogState
   bool _showCurrent = false;
   bool _showNew = false;
   bool _showConfirm = false;
+  String? _currentPasswordError;
+  String? _newPasswordError;
+  String? _confirmPasswordError;
 
   Future<void> _changePassword() async {
+    setState(() {
+      _currentPasswordError = null;
+      _newPasswordError = null;
+      _confirmPasswordError = null;
+    });
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -89,30 +98,28 @@ class _ChangePasswordDialogState
 
       Navigator.pop(context);
 
-      ScaffoldMessenger.of(context)
-          .showSnackBar(
-        const SnackBar(
-          content: Text(
-            "Password changed successfully.",
-          ),
-        ),
+      MessageHelper.showSuccess(
+      context,
+      "Password changed successfully.",
       );
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context)
-          .showSnackBar(
-        SnackBar(
-          content: Text(
-            e
-                .toString()
-                .replaceAll(
-                  "Exception: ",
-                  "",
-                ),
-          ),
-        ),
-      );
+    final error =
+    e.toString().replaceFirst("Exception: ", "");
+
+    setState(() {
+      if (error.toLowerCase().contains("current")) {
+        _currentPasswordError = error;
+      } else if (error.toLowerCase().contains("confirm")) {
+        _confirmPasswordError = error;
+      } else if (error.toLowerCase().contains("new")) {
+        _newPasswordError = error;
+      } else {
+        _currentPasswordError = error;
+      }
+    });
+    
     } finally {
       if (mounted) {
         setState(() {
@@ -173,6 +180,8 @@ class _ChangePasswordDialogState
                             !_showCurrent;
                       });
                     },
+                    ).copyWith(
+                    errorText: _currentPasswordError,
                   ),
                   validator: (value) {
                     if (value == null ||
@@ -201,6 +210,8 @@ class _ChangePasswordDialogState
                             !_showNew;
                       });
                     },
+                    ).copyWith(
+                    errorText: _newPasswordError
                   ),
                   validator: (value) {
                     if (value == null ||
@@ -235,6 +246,8 @@ class _ChangePasswordDialogState
                             !_showConfirm;
                       });
                     },
+                    ).copyWith(
+                      errorText: _confirmPasswordError,
                   ),
                   validator: (value) {
                     if (value == null ||

@@ -4,6 +4,8 @@ using eAnimalShelter.Services.Database;
 using eAnimalShelter.Services.Interfaces;
 using Microsoft.AspNetCore.Hosting;
 using PdfSharpCore.Pdf.Filters;
+using PdfSharpCore.Fonts;
+using System.Reflection;
 
 namespace eAnimalShelter.Services
 {
@@ -39,10 +41,10 @@ namespace eAnimalShelter.Services
             var graphics = XGraphics.FromPdfPage(page);
 
             var titleFont =
-                new XFont("Arial", 20, XFontStyle.Bold);
+                new XFont("DejaVu Sans", 20, XFontStyle.Bold);
 
             var font =
-                new XFont("Arial", 12);
+                new XFont("DejaVu Sans", 12);
 
             double y = 50;
 

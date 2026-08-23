@@ -460,7 +460,7 @@ class _DonationListScreenState
 
                                           DataCell(
                                             Text(
-                                              "${donation.amount?.toStringAsFixed(2)} KM",
+                                              "${donation.amount?.toStringAsFixed(2)} €",
                                             ),
                                           ),
 

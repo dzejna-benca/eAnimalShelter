@@ -97,7 +97,8 @@ void didChangeDependencies() {
     } catch (e) {
       MessageHelper.showError(
       context,
-      e.toString());
+      e.toString().replaceFirst("Exception: ", ""),
+    );
     } finally {
       if (mounted) {
         setState(() => _loading = false);
@@ -129,7 +130,8 @@ void didChangeDependencies() {
     } catch (e) {
       MessageHelper.showError(
       context,
-      e.toString());
+      e.toString().replaceFirst("Exception: ", ""),
+    );
     }
   }
   Color getStatusColor(int? status) {
@@ -413,23 +415,30 @@ void didChangeDependencies() {
                                             );
 
                                               if (confirm == true) {
-                                               await _activityProvider.cancelActivity(
-                                                  activity.activityId,
-                                                
-                                                );
+                                                try {
+                                                  await _activityProvider.cancelActivity(
+                                                    activity.activityId,
+                                                  );
 
-                                                if (!mounted) return;
+                                                  if (!mounted) return;
 
-                                                MessageHelper.showSuccess(
-                                                  context,
-                                                  "Volunteer activity cancelled successfully.",
-                                                );
-      
+                                                  MessageHelper.showSuccess(
+                                                    context,
+                                                    "Volunteer activity cancelled successfully.",
+                                                  );
 
-                                                await _loadActivities();
+                                                  await _loadActivities();
+
+                                                } catch (e) {
+                                                  if (!mounted) return;
+
+                                                  MessageHelper.showError(
+                                                    context,
+                                                    e.toString().replaceFirst("Exception: ", ""),
+                                                  );
+                                                }
                                               }
                                             }
-                                      
                                             },
                                             itemBuilder: (context) => [
                                               const PopupMenuItem(value: "details", child: Text("View Details")),
@@ -443,38 +452,38 @@ void didChangeDependencies() {
                                             ],
                                           ),
                                         ),
-          ],
-        );
-      }).toList(),
-    );
-  }
+                                    ],
+                                  );
+                                }).toList(),
+                              );
+                            }
 
-  Widget _buildPagination() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        ElevatedButton(
-          onPressed: _page > 1
-              ? () {
-                  setState(() => _page--);
-                  _loadActivities();
-                }
-              : null,
-          child: const Text("Previous"),
-        ),
-        const SizedBox(width: 15),
-        Text("Page $_page of $_totalPages"),
-        const SizedBox(width: 15),
-        ElevatedButton(
-          onPressed: _page < _totalPages
-              ? () {
-                  setState(() => _page++);
-                  _loadActivities();
-                }
-              : null,
-          child: const Text("Next"),
-        ),
-      ],
-    );
-  }
-}
+                            Widget _buildPagination() {
+                              return Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  ElevatedButton(
+                                    onPressed: _page > 1
+                                        ? () {
+                                            setState(() => _page--);
+                                            _loadActivities();
+                                          }
+                                        : null,
+                                    child: const Text("Previous"),
+                                  ),
+                                  const SizedBox(width: 15),
+                                  Text("Page $_page of $_totalPages"),
+                                  const SizedBox(width: 15),
+                                  ElevatedButton(
+                                    onPressed: _page < _totalPages
+                                        ? () {
+                                            setState(() => _page++);
+                                            _loadActivities();
+                                          }
+                                        : null,
+                                    child: const Text("Next"),
+                                  ),
+                                ],
+                              );
+                            }
+                          }

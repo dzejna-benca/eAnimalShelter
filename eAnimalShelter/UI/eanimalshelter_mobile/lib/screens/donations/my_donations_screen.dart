@@ -20,6 +20,16 @@ class MyDonationsScreen extends StatefulWidget {
 class _MyDonationsScreenState
     extends State<MyDonationsScreen> {
   List<Donation> _donations = [];
+  List<Donation> _filteredDonations = [];
+
+  String _searchText = "";
+  String _selectedStatus = "All";
+  final List<String> _statuses = [
+    "All",
+    "Successful",
+    "Failed",
+    "Pending",
+  ];
 
   bool _loading = true;
 
@@ -31,16 +41,15 @@ class _MyDonationsScreenState
 
   Future<void> _loadDonations() async {
     try {
-      final provider =
-          context.read<DonationProvider>();
+      final provider = context.read<DonationProvider>();
 
-      final result =
-          await provider.getMyDonations();
+      final result = await provider.getMyDonations();
 
       if (!mounted) return;
 
       setState(() {
         _donations = result.items;
+        _filteredDonations = result.items;
       });
     } finally {
       if (mounted) {
@@ -49,6 +58,29 @@ class _MyDonationsScreenState
         });
       }
     }
+  }
+
+  void _applyFilters() {
+    var searchText = _searchText.trim().toLowerCase();
+
+    var filtered = _donations.where((donation) {
+      final amountMatch = searchText.isEmpty ||
+          donation.amount
+              .toStringAsFixed(2)
+              .toLowerCase()
+              .contains(searchText);
+
+      final statusMatch = _selectedStatus == "All" ||
+          _statusText(donation.transactionStatus)
+              .toLowerCase()
+              .contains(_selectedStatus.toLowerCase());
+
+      return amountMatch && statusMatch;
+    }).toList();
+
+    setState(() {
+      _filteredDonations = filtered;
+    });
   }
 
   Future<void> _downloadReceipt(
@@ -233,110 +265,177 @@ class _MyDonationsScreenState
                               const EdgeInsets.all(
                                   20),
                           itemCount:
-                              _donations.length +
+                              _filteredDonations.length +
                                   1,
                           itemBuilder:
                               (context, index) {
                             if (index == 0) {
-                              return Container(
-                                margin:
-                                    const EdgeInsets.only(
-                                        bottom:
-                                            20),
-                                padding:
-                                    const EdgeInsets.all(
-                                        22),
-                                decoration:
-                                    BoxDecoration(
-                                  borderRadius:
-                                      BorderRadius.circular(
-                                          24),
-                                  gradient:
-                                      const LinearGradient(
-                                    colors: [
-                                      Colors.teal,
-                                      Color(
-                                          0xff4db6ac)
-                                    ],
-                                  ),
-                                ),
-                                child:
-                                    Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment
-                                          .start,
-                                  children: [
-                                    const Row(
-                                      children: [
-                                        Icon(
-                                          Icons
-                                              .favorite,
-                                          color: Colors
-                                              .white,
+                              return Column(
+                                crossAxisAlignment:
+                                    CrossAxisAlignment.start,
+                                children: [
+                                  Padding(
+                                    padding:
+                                        const EdgeInsets.only(bottom: 12),
+                                    child: TextField(
+                                      decoration: InputDecoration(
+                                        hintText: "Search amount...",
+                                        prefixIcon: const Icon(
+                                            Icons.search),
+                                        filled: true,
+                                        fillColor:
+                                            Colors.grey.shade100,
+                                        border: OutlineInputBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(30),
                                         ),
-                                        SizedBox(
-                                            width:
-                                                8),
-                                        Text(
-                                          "Donation Summary",
-                                          style:
-                                              TextStyle(
-                                            color:
-                                                Colors.white,
-                                            fontWeight:
-                                                FontWeight.bold,
-                                            fontSize:
-                                                18,
-                                          ),
-                                        ),
-                                      ],
+                                      ),
+                                      keyboardType:
+                                          const TextInputType.numberWithOptions(
+                                              decimal: true),
+                                      onChanged: (value) {
+                                        _searchText = value;
+                                        _applyFilters();
+                                      },
                                     ),
-                                    const SizedBox(
-                                        height:
-                                            25),
-                                    Text(
-                                      "€${_totalAmount.toStringAsFixed(2)}",
-                                      style:
-                                          const TextStyle(
-                                        color:
-                                            Colors.white,
-                                        fontSize:
-                                            34,
-                                        fontWeight:
-                                            FontWeight.bold,
+                                  ),
+                                  SizedBox(
+                                    height: 55,
+                                    child: ListView.separated(
+                                      padding:
+                                          const EdgeInsets.symmetric(
+                                              horizontal: 0),
+                                      scrollDirection:
+                                          Axis.horizontal,
+                                      itemCount: _statuses.length,
+                                      itemBuilder:
+                                          (context, chipIndex) {
+                                        final status =
+                                            _statuses[chipIndex];
+                                        final selected =
+                                            status == _selectedStatus;
+                                        return ChoiceChip(
+                                          label: Text(status),
+                                          selected: selected,
+                                          onSelected: (_) {
+                                            setState(() {
+                                              _selectedStatus = status;
+                                            });
+                                            _applyFilters();
+                                          },
+                                        );
+                                      },
+                                      separatorBuilder:
+                                          (_, __) => const SizedBox(
+                                        width: 8,
                                       ),
                                     ),
-                                    const SizedBox(
-                                        height:
-                                            20),
-                                    Row(
+                                  ),
+                                  const SizedBox(height: 10),
+                                  if (_filteredDonations.isEmpty)
+                                    Container(
+                                      margin: const EdgeInsets.only(
+                                          bottom: 20),
+                                      padding: const EdgeInsets.all(22),
+                                      decoration: BoxDecoration(
+                                        borderRadius:
+                                            BorderRadius.circular(24),
+                                        color: Colors.grey.shade100,
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: const [
+                                          Text(
+                                            "Donation Summary",
+                                            style: TextStyle(
+                                              fontWeight:
+                                                  FontWeight.bold,
+                                              fontSize: 18,
+                                            ),
+                                          ),
+                                          SizedBox(height: 10),
+                                          Text(
+                                            "No donations matched your search.",
+                                            style: TextStyle(
+                                              color: Colors.grey,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  Container(
+                                    margin:
+                                        const EdgeInsets.only(bottom: 20),
+                                    padding: const EdgeInsets.all(22),
+                                    decoration: BoxDecoration(
+                                      borderRadius:
+                                          BorderRadius.circular(24),
+                                      gradient: const LinearGradient(
+                                        colors: [
+                                          Colors.teal,
+                                          Color(0xff4db6ac)
+                                        ],
+                                      ),
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
-                                        Expanded(
-                                          child:
-                                              _summaryItem(
-                                            "Donations",
-                                            _donations
-                                                .length
-                                                .toString(),
+                                        const Row(
+                                          children: [
+                                            Icon(
+                                              Icons.favorite,
+                                              color: Colors.white,
+                                            ),
+                                            SizedBox(width: 8),
+                                            Text(
+                                              "Donation Summary",
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontWeight:
+                                                    FontWeight.bold,
+                                                fontSize: 18,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 25),
+                                        Text(
+                                          "€${_totalAmount.toStringAsFixed(2)}",
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 34,
+                                            fontWeight: FontWeight.bold,
                                           ),
                                         ),
-                                        Expanded(
-                                          child:
-                                              _summaryItem(
-                                            "Successful",
-                                            _successful
-                                                .toString(),
-                                          ),
+                                        const SizedBox(height: 20),
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: _summaryItem(
+                                                "Donations",
+                                                _donations.length
+                                                    .toString(),
+                                              ),
+                                            ),
+                                            Expanded(
+                                              child: _summaryItem(
+                                                "Successful",
+                                                _successful.toString(),
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ],
                                     ),
-                                  ],
-                                ),
+                                  ),
+                                ],
                               );
                             }
 
                             final donation =
-                                _donations[
+                                _filteredDonations[
                                     index - 1];
                                                                 return Card(
                               elevation: 3,

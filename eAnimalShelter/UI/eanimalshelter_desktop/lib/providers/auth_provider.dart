@@ -8,6 +8,8 @@ import '../utils/app_config.dart';
 class UnauthorizedRoleException
     implements Exception {
   final String message;
+  
+
 
   UnauthorizedRoleException(
     this.message,
@@ -20,11 +22,17 @@ class UnauthorizedRoleException
 class AuthProvider extends ChangeNotifier {
   static String? _accessToken;
   String? _refreshToken;
+   static AuthProvider? instance;
+
 
   static String? _fullName;
 
   static String get fullName =>
       _fullName ?? "Administrator";
+
+  AuthProvider() {
+    instance = this;
+  }
 
 
   bool _isAuthenticated = false;
@@ -93,6 +101,40 @@ class AuthProvider extends ChangeNotifier {
     _isAuthenticated = false;
 
     notifyListeners();
+  }
+  Future<bool> refreshAccessToken() async {
+    if (_refreshToken == null || _refreshToken!.isEmpty) {
+      return false;
+    }
+
+    final response = await http.post(
+      Uri.parse("$_baseUrl/LoginWithRefreshToken"),
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: jsonEncode({
+        "refreshToken": _refreshToken,
+      }),
+    );
+
+    if (response.statusCode >= 200 &&
+        response.statusCode < 300) {
+      final data = jsonDecode(response.body);
+
+      _accessToken = data["accessToken"];
+      _refreshToken = data["refreshToken"];
+
+      _fullName =
+          "${data["firstName"]} ${data["lastName"]}"
+              .trim();
+
+      notifyListeners();
+
+      return true;
+    }
+
+    logout();
+    return false;
   }
 }
 

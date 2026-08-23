@@ -1490,9 +1490,9 @@ namespace eAnimalShelter.Services.Migrations
                             DateSent = new DateTime(2026, 3, 2, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             IsRead = false,
                             Message = "A new activity is available.",
-                            TargetRoleId = 2,
                             Title = "New Volunteer Event",
-                            Type = 1
+                            Type = 1,
+                            UserId = 4
                         },
                         new
                         {
@@ -1500,9 +1500,9 @@ namespace eAnimalShelter.Services.Migrations
                             DateSent = new DateTime(2026, 3, 10, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             IsRead = false,
                             Message = "Check newly available animals.",
-                            TargetRoleId = 3,
                             Title = "New Animals Available",
-                            Type = 3
+                            Type = 3,
+                            UserId = 9
                         },
                         new
                         {
@@ -1510,9 +1510,9 @@ namespace eAnimalShelter.Services.Migrations
                             DateSent = new DateTime(2026, 3, 15, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             IsRead = false,
                             Message = "Visit our adoption fair this weekend.",
-                            TargetRoleId = 3,
                             Title = "Adoption Fair",
-                            Type = 3
+                            Type = 3,
+                            UserId = 8
                         },
                         new
                         {
@@ -1520,9 +1520,9 @@ namespace eAnimalShelter.Services.Migrations
                             DateSent = new DateTime(2026, 3, 18, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             IsRead = false,
                             Message = "Database maintenance scheduled.",
-                            TargetRoleId = 1,
                             Title = "System Update",
-                            Type = 4
+                            Type = 4,
+                            UserId = 10
                         },
                         new
                         {
@@ -1554,6 +1554,39 @@ namespace eAnimalShelter.Services.Migrations
                             Type = 1,
                             UserId = 3
                         });
+                });
+
+            modelBuilder.Entity("eAnimalShelter.Services.Database.NotificationDeliveryLog", b =>
+                {
+                    b.Property<int>("NotificationDeliveryLogId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("NotificationDeliveryLogId"));
+
+                    b.Property<DateTime>("DeliveredAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("NotificationId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("Success")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("NotificationDeliveryLogId");
+
+                    b.ToTable("NotificationDeliveryLogs");
                 });
 
             modelBuilder.Entity("eAnimalShelter.Services.Database.RefreshToken", b =>
@@ -2136,10 +2169,10 @@ namespace eAnimalShelter.Services.Migrations
                             ActivityId = 8,
                             CreatedBy = 1,
                             Description = "Morning walk with shelter dogs during the summer season.",
-                            EndDateTime = new DateTime(2026, 7, 24, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            EndDateTime = new DateTime(2026, 9, 24, 12, 0, 0, 0, DateTimeKind.Unspecified),
                             LocationId = 7,
                             MaxVolunteers = 8,
-                            StartDateTime = new DateTime(2026, 7, 24, 8, 0, 0, 0, DateTimeKind.Unspecified),
+                            StartDateTime = new DateTime(2026, 9, 24, 8, 0, 0, 0, DateTimeKind.Unspecified),
                             Status = 0,
                             Title = "Summer Dog Walking"
                         },
@@ -2148,10 +2181,10 @@ namespace eAnimalShelter.Services.Migrations
                             ActivityId = 9,
                             CreatedBy = 2,
                             Description = "Preparing toys and enrichment activities for shelter animals.",
-                            EndDateTime = new DateTime(2026, 7, 30, 15, 0, 0, 0, DateTimeKind.Unspecified),
+                            EndDateTime = new DateTime(2026, 9, 30, 15, 0, 0, 0, DateTimeKind.Unspecified),
                             LocationId = 3,
                             MaxVolunteers = 10,
-                            StartDateTime = new DateTime(2026, 7, 30, 10, 0, 0, 0, DateTimeKind.Unspecified),
+                            StartDateTime = new DateTime(2026, 9, 30, 10, 0, 0, 0, DateTimeKind.Unspecified),
                             Status = 0,
                             Title = "Animal Enrichment Workshop"
                         });

@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import '../models/adoption_report.dart';
 import '../models/adoption_request.dart';
 import 'base_provider.dart';
 
@@ -52,5 +53,11 @@ class AdoptionRequestProvider
   @override
   AdoptionRequest fromJson(data) {
     return AdoptionRequest.fromJson(data);
+  }
+
+  Future<AdoptionReport> getReport() async {
+    var response = await getCustom("report");
+
+    return AdoptionReport.fromJson(response);
   }
 }

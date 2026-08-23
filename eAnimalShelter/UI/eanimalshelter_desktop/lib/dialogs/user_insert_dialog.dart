@@ -4,7 +4,7 @@ import '../models/role.dart';
 import '../providers/role_provider.dart';
 import '../providers/user_provider.dart';
 import '../utils/validators.dart';
-import '../utils/message_helper.dart';
+
 
 class UserInsertDialog extends StatefulWidget {
   const UserInsertDialog({super.key});
@@ -31,6 +31,7 @@ class _UserInsertDialogState extends State<UserInsertDialog> {
 
   late RoleProvider _roleProvider;
   late UserProvider _userProvider;
+  String? _generalError;
 
   @override
   void initState() {
@@ -46,10 +47,10 @@ class _UserInsertDialogState extends State<UserInsertDialog> {
       setState(() => _roles = result.items);
     } catch (e) {
       if (!mounted) return;
-      MessageHelper.showError(
-      context,
-      e.toString(),
-      );
+      setState(() {
+        _generalError =
+            e.toString().replaceFirst("Exception: ", "");
+      });
     }
   }
 
@@ -58,7 +59,10 @@ class _UserInsertDialogState extends State<UserInsertDialog> {
 
 
     try {
-      setState(() => _loading = true);
+      setState(() {
+      _generalError = null;
+      _loading = true;
+    });
 
       await _userProvider.insert({
         "firstName": _firstNameController.text,
@@ -73,12 +77,16 @@ class _UserInsertDialogState extends State<UserInsertDialog> {
       });
 
       if (!mounted) return;
-      Navigator.pop(context, true);
+
+    Navigator.pop(context, true);
     } catch (e) {
-      MessageHelper.showError(
-      context,
-      e.toString(),
-    );
+      if (!mounted) return;
+
+    setState(() {
+      _generalError =
+          e.toString().replaceFirst("Exception: ", "");
+    });
+        
     } finally {
       setState(() => _loading = false);
     }
@@ -196,6 +204,19 @@ class _UserInsertDialogState extends State<UserInsertDialog> {
                 setState(() => _selectedRoleId = value);
               },
             ),
+            if (_generalError != null) ...[
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                _generalError!,
+                style: const TextStyle(
+                  color: Colors.red,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+          ],
           ],
         ),
       ),

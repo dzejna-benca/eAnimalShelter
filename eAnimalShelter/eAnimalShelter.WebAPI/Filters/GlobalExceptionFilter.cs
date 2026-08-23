@@ -46,6 +46,18 @@ namespace eAnimalShelter.WebAPI.Filters
 
                     break;
 
+                case UnauthorizedAccessException:
+
+                    context.Result = new ObjectResult(new
+                    {
+                        message = context.Exception.Message
+                    })
+                    {
+                        StatusCode = StatusCodes.Status403Forbidden
+                    };
+
+                    break;
+
                 case KeyNotFoundException:
 
                     context.Result = new NotFoundObjectResult(new

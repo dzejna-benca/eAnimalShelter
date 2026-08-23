@@ -1,3 +1,4 @@
+using eAnimalShelter.Model.Exceptions;
 using eAnimalShelter.Model.Requests;
 using eAnimalShelter.Model.Responses;
 using eAnimalShelter.Model.SearchObjects;
@@ -74,9 +75,51 @@ namespace eAnimalShelter.Services
         {
             await _insertValidator.ValidateAndThrowAsync(request);
 
+            var exists = await _dbContext.Roles.AnyAsync(x =>
+                x.Name.Trim().ToLower() == request.Name.Trim().ToLower());
+
+            if (exists)
+            {
+                throw new ClientException(
+                    $"Role '{request.Name}' already exists.");
+            }
+
             var entity = _mapper.Map<Role>(request);
 
             _dbContext.Set<Role>().Add(entity);
+
+            await _dbContext.SaveChangesAsync();
+
+            return _mapper.Map<RoleResponse>(entity);
+        }
+        public override async Task<RoleResponse> UpdateAsync(
+            int id,
+            RoleUpdateRequest request)
+        {
+            await _updateValidator.ValidateAndThrowAsync(request);
+
+            var entity = await _dbContext.Roles
+                .FirstOrDefaultAsync(x => x.Id == id);
+
+            if (entity == null)
+            {
+                throw new KeyNotFoundException(
+                    $"Role with id {id} not found.");
+            }
+
+            var exists = await _dbContext.Roles.AnyAsync(x =>
+                x.Id != id &&
+                x.Name.Trim().ToLower() == request.Name.Trim().ToLower());
+
+            if (exists)
+            {
+                throw new ClientException(
+                    $"Role '{request.Name}' already exists.");
+            }
+
+            entity.Name = request.Name;
+            entity.Description = request.Description;
+            entity.IsActive = request.IsActive;
 
             await _dbContext.SaveChangesAsync();
 

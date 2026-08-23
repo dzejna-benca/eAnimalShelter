@@ -1,5 +1,5 @@
 import '../models/requests/user_password_change_request.dart';
-import '../models/requests/user_update_request.dart';
+import '../models/requests/profile_update_request.dart';
 import '../models/user.dart';
 import 'base_provider.dart';
 
@@ -22,16 +22,15 @@ class ProfileProvider extends BaseProvider<User> {
   }
 
   Future<User> updateProfile(
-    UserUpdateRequest request,
+    ProfileUpdateRequest request,
   ) async {
-    currentUser = await putCustom(
-      "",
-      request.toJson(),
-    );
+      currentUser = await putCustom(
+        "",
+        request.toJson(),
+      );
 
-    notifyListeners();
-
-    return currentUser!;
+      notifyListeners();
+      return currentUser!;
   }
   Future<void> changePassword(
     UserPasswordChangeRequest request,

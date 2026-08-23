@@ -17,6 +17,7 @@ import 'providers/notification_provider.dart';
 import 'providers/profile_provider.dart';
 import 'providers/volunteer_activity_provider.dart';
 import 'providers/volunteer_assignment_provider.dart';
+import 'utils/navigation_utils.dart';
 import 'dart:io';
 
 Future<void> main() async {
@@ -86,6 +87,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: NavigationUtils.navigatorKey,
       title: "eAnimalShelter",
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
@@ -96,3 +98,5 @@ class MyApp extends StatelessWidget {
     );
   }
 }
+
+

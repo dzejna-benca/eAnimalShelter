@@ -18,6 +18,7 @@ import 'screens/login_screen.dart';
 import 'providers/role_provider.dart';
 import 'providers/user_provider.dart';
 import 'providers/animal_image_provider.dart';
+import 'utils/navigation_utils.dart';
 
 void main() {
   runApp(
@@ -81,6 +82,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: NavigationUtils.navigatorKey,
       title: 'eAnimal Shelter Admin',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(

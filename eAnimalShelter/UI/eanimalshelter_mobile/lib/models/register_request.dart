@@ -1,3 +1,8 @@
+enum UserRoleType {
+  client,
+  volunteer,
+}
+
 class RegisterRequest {
   String firstName;
   String lastName;
@@ -6,7 +11,7 @@ class RegisterRequest {
   String password;
   String? phoneNumber;
   String address;
-  int roleId;
+  UserRoleType role;
 
   RegisterRequest({
     required this.firstName,
@@ -16,7 +21,7 @@ class RegisterRequest {
     required this.password,
     this.phoneNumber,
     required this.address,
-    required this.roleId,
+    required this.role,
   });
 
   Map<String, dynamic> toJson() {
@@ -28,8 +33,8 @@ class RegisterRequest {
       "password": password,
       "phoneNumber": phoneNumber,
       "address": address,
-      "roleId": roleId,
-      "isActive": true,
+      "role": role == UserRoleType.client
+          ? 3 : 2,
     };
   }
 }

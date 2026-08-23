@@ -1,5 +1,6 @@
 using eAnimalShelter.Model;
 using eAnimalShelter.Model.Enums;
+using eAnimalShelter.Model.Exceptions;
 using eAnimalShelter.Model.Requests;
 using eAnimalShelter.Model.Responses;
 using eAnimalShelter.Model.SearchObjects;
@@ -151,11 +152,26 @@ namespace eAnimalShelter.Services
         {
             await _insertValidator.ValidateAndThrowAsync(request);
 
+            var breed = await _dbContext.AnimalBreeds
+                .FirstOrDefaultAsync(x => x.BreedId == request.BreedId);
+
+            if (breed == null)
+            {
+                throw new KeyNotFoundException(
+                    $"Breed with id {request.BreedId} not found.");
+            }
+
+            if (breed.SpeciesId != request.SpeciesId)
+            {
+                throw new ClientException(
+                    "The selected breed does not belong to the selected species.");
+            }
+
             var entity = _mapper.Map<Animal>(request);
 
             entity.CreatedBy =
                 _authenticatedUserAccessor.GetUserId()
-                ?? throw new UnauthorizedAccessException();
+                ?? throw new UnauthorizedAccessException("User is not authenticated.");
 
             _dbContext.Set<Animal>().Add(entity);
 
@@ -169,6 +185,21 @@ namespace eAnimalShelter.Services
             AnimalUpdateRequest request)
         {
             await _updateValidator.ValidateAndThrowAsync(request);
+
+            var breed = await _dbContext.AnimalBreeds
+                .FirstOrDefaultAsync(x => x.BreedId == request.BreedId);
+
+            if (breed == null)
+            {
+                throw new KeyNotFoundException(
+                    $"Breed with id {request.BreedId} not found.");
+            }
+
+            if (breed.SpeciesId != request.SpeciesId)
+            {
+                throw new ClientException(
+                    "The selected breed does not belong to the selected species.");
+            }
 
             var entity = await _dbContext.Set<Animal>()
                 .FirstOrDefaultAsync(x => x.AnimalId == id);

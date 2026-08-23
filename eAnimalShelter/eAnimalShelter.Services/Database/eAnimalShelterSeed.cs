@@ -1290,8 +1290,8 @@ namespace eAnimalShelter.Services.Database
                     Title = "Summer Dog Walking",
                     Description = "Morning walk with shelter dogs during the summer season.",
                     LocationId = 7,
-                    StartDateTime = new DateTime(2026, 7, 24, 8, 0, 0),
-                    EndDateTime = new DateTime(2026, 7, 24, 12, 0, 0),
+                    StartDateTime = new DateTime(2026, 9, 24, 8, 0, 0),
+                    EndDateTime = new DateTime(2026, 9, 24, 12, 0, 0),
                     MaxVolunteers = 8,
                     Status = ActivityStatus.Active,
                     CreatedBy = 1
@@ -1303,8 +1303,8 @@ namespace eAnimalShelter.Services.Database
                     Title = "Animal Enrichment Workshop",
                     Description = "Preparing toys and enrichment activities for shelter animals.",
                     LocationId = 3,
-                    StartDateTime = new DateTime(2026, 7, 30, 10, 0, 0),
-                    EndDateTime = new DateTime(2026, 7, 30, 15, 0, 0),
+                    StartDateTime = new DateTime(2026, 9, 30, 10, 0, 0),
+                    EndDateTime = new DateTime(2026, 9, 30, 15, 0, 0),
                     MaxVolunteers = 10,
                     Status = ActivityStatus.Active,
                     CreatedBy = 2
@@ -1549,13 +1549,13 @@ namespace eAnimalShelter.Services.Database
 
                 new { NotificationId=11, UserId=7, TargetRoleId=(int?)null, Title="Event Participation", Message="You joined Adoption Fair.", Type=NotificationType.Volunteer, IsRead=false, DateSent=new DateTime(2026,3,1), ReadAt=(DateTime?)null },
 
-                new { NotificationId=12, UserId=(int?)null, TargetRoleId=2, Title="New Volunteer Event", Message="A new activity is available.", Type=NotificationType.Volunteer, IsRead=false, DateSent=new DateTime(2026,3,2), ReadAt=(DateTime?)null },
+                new { NotificationId=12, UserId=4, TargetRoleId=(int?)null, Title="New Volunteer Event", Message="A new activity is available.", Type=NotificationType.Volunteer, IsRead=false, DateSent=new DateTime(2026,3,2), ReadAt=(DateTime?)null },
 
-                new { NotificationId=13, UserId=(int?)null, TargetRoleId=3, Title="New Animals Available", Message="Check newly available animals.", Type=NotificationType.Announcement, IsRead=false, DateSent=new DateTime(2026,3,10), ReadAt=(DateTime?)null },
+                new { NotificationId=13, UserId=9, TargetRoleId=(int?)null, Title="New Animals Available", Message="Check newly available animals.", Type=NotificationType.Announcement, IsRead=false, DateSent=new DateTime(2026,3,10), ReadAt=(DateTime?)null },
 
-                new { NotificationId=14, UserId=(int?)null, TargetRoleId=3, Title="Adoption Fair", Message="Visit our adoption fair this weekend.", Type=NotificationType.Announcement, IsRead=false, DateSent=new DateTime(2026,3,15), ReadAt=(DateTime?)null },
+                new { NotificationId=14, UserId=8, TargetRoleId=(int?)null, Title="Adoption Fair", Message="Visit our adoption fair this weekend.", Type=NotificationType.Announcement, IsRead=false, DateSent=new DateTime(2026,3,15), ReadAt=(DateTime?)null },
 
-                new { NotificationId=15, UserId=(int?)null, TargetRoleId=1, Title="System Update", Message="Database maintenance scheduled.", Type=NotificationType.System, IsRead=false, DateSent=new DateTime(2026,3,18), ReadAt=(DateTime?)null },
+                new { NotificationId=15, UserId=10, TargetRoleId=(int?)null, Title="System Update", Message="Database maintenance scheduled.", Type=NotificationType.System, IsRead=false, DateSent=new DateTime(2026,3,18), ReadAt=(DateTime?)null },
 
                 new { NotificationId=16, UserId=1, TargetRoleId=(int?)null, Title="New Adoption Request", Message="A new request requires review.", Type=NotificationType.Adoption, IsRead=false, DateSent=new DateTime(2026,3,19), ReadAt=(DateTime?)null },
 

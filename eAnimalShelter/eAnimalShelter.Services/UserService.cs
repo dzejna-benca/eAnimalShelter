@@ -1,4 +1,6 @@
 using eAnimalShelter.Common.Services.CryptoService;
+using eAnimalShelter.Model.Enums;
+using eAnimalShelter.Model.Exceptions;
 using eAnimalShelter.Model.Requests;
 using eAnimalShelter.Model.Responses;
 using eAnimalShelter.Model.SearchObjects;
@@ -14,16 +16,20 @@ namespace eAnimalShelter.Services
         UserResponse,
         UserSearchObject,
         UserInsertRequest,
-        UserUpdateRequest>,
+        AdminUserUpdateRequest>,
         IUserService
     {
         private readonly ICryptoService _cryptoService;
+        private readonly IValidator<RegisterRequest> _registerValidator;
+        private readonly IValidator<ProfileUpdateRequest> _profileUpdateValidator;
 
         public UserService(
             eAnimalShelterDbContext dbContext,
             MapsterMapper.IMapper mapper,
             IValidator<UserInsertRequest> insertValidator,
-            IValidator<UserUpdateRequest> updateValidator,
+            IValidator<AdminUserUpdateRequest> updateValidator,
+            IValidator<RegisterRequest> registerValidator,
+            IValidator<ProfileUpdateRequest> profileUpdateValidator,
             ICryptoService cryptoService)
             : base(
                 dbContext,
@@ -32,6 +38,8 @@ namespace eAnimalShelter.Services
                 updateValidator)
         {
             _cryptoService = cryptoService;
+            _registerValidator = registerValidator;
+            _profileUpdateValidator = profileUpdateValidator;
         }
 
         protected override IQueryable<User> ApplyFilters(
@@ -141,6 +149,60 @@ namespace eAnimalShelter.Services
 
             return await GetByIdAsync(entity.UserId);
         }
+        public async Task<UserResponse> RegisterAsync(RegisterRequest request)
+        {
+            await _registerValidator.ValidateAndThrowAsync(request);
+
+            if (await _dbContext.Users.AnyAsync(x =>
+                x.Username == request.Username))
+            {
+                throw new InvalidOperationException(
+                    $"Username '{request.Username}' already exists.");
+            }
+
+            if (await _dbContext.Users.AnyAsync(x =>
+                x.Email == request.Email))
+            {
+                throw new InvalidOperationException(
+                    $"Email '{request.Email}' already exists.");
+            }
+
+            if (request.Role != UserRoleType.Client &&
+                request.Role != UserRoleType.Volunteer)
+            {
+                throw new InvalidOperationException(
+                    "Invalid role.");
+            }
+
+            var entity = new User
+            {
+                FirstName = request.FirstName,
+                LastName = request.LastName,
+                Email = request.Email,
+                Username = request.Username,
+                PhoneNumber = request.PhoneNumber,
+                Address = request.Address,
+                IsActive = true
+            };
+
+            var salt = _cryptoService.GenerateSalt();
+
+            entity.PasswordSalt = salt;
+            entity.PasswordHash =
+                _cryptoService.GenerateHash(
+                    request.Password,
+                    salt);
+
+            _dbContext.Users.Add(entity);
+
+            await _dbContext.SaveChangesAsync();
+
+            await AssignRoleAsync(
+                entity.UserId,
+                (int)request.Role);
+
+            return await GetByIdAsync(entity.UserId);
+        }
         private async Task UpdateRoleAsync(
             int userId,
             int roleId)
@@ -168,7 +230,7 @@ namespace eAnimalShelter.Services
         }
        public override async Task<UserResponse> UpdateAsync(
             int id,
-            UserUpdateRequest request)
+            AdminUserUpdateRequest request)
         {
             await _updateValidator.ValidateAndThrowAsync(request);
 
@@ -345,12 +407,12 @@ namespace eAnimalShelter.Services
                     user.PasswordSalt,
                     request.Password))
             {
-                throw new Exception("Current password is incorrect.");
+                throw new ClientException("Current password is incorrect.");
             }
 
             if (request.NewPassword != request.ConfirmNewPassword)
             {
-                throw new Exception(
+                throw new ClientException(
                     "Password confirmation does not match.");
             }
 
@@ -363,6 +425,36 @@ namespace eAnimalShelter.Services
                     salt);
 
             await _dbContext.SaveChangesAsync();
+        }
+        public async Task<UserResponse> UpdateProfileAsync(
+            int id,
+            ProfileUpdateRequest request)
+        {
+            await _profileUpdateValidator.ValidateAndThrowAsync(request);
+
+            var entity = await _dbContext.Users
+                .FirstOrDefaultAsync(x => x.UserId == id);
+
+            if (entity == null)
+                throw new KeyNotFoundException();
+
+            if (await _dbContext.Users.AnyAsync(x =>
+                x.Email == request.Email &&
+                x.UserId != id))
+            {
+                throw new InvalidOperationException(
+                    $"Email '{request.Email}' already exists.");
+            }
+
+            entity.FirstName = request.FirstName;
+            entity.LastName = request.LastName;
+            entity.Email = request.Email;
+            entity.PhoneNumber = request.PhoneNumber;
+            entity.Address = request.Address;
+
+            await _dbContext.SaveChangesAsync();
+
+            return await GetByIdAsync(id);
         }
     }
 }

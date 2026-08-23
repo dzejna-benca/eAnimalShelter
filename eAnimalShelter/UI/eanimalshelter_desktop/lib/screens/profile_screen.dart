@@ -1,8 +1,8 @@
+import 'package:eanimalshelter_desktop/models/requests/profile_update_request.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../dialogs/change_password_dialog.dart';
-import '../models/requests/user_update_request.dart';
 import '../models/user.dart';
 import '../providers/profile_provider.dart';
 
@@ -143,7 +143,7 @@ class _ProfileScreenState
           await context
               .read<ProfileProvider>()
               .updateProfile(
-                UserUpdateRequest(
+                ProfileUpdateRequest(
                   firstName:
                       firstNameController.text.trim(),
                   lastName:
@@ -158,8 +158,7 @@ class _ProfileScreenState
                       addressController.text.trim().isEmpty
                           ? null
                           : addressController.text.trim(),
-                  isActive: user?.isActive ?? true,
-                  roleId: user?.roleId ?? 0,
+
                 ),
               );
 

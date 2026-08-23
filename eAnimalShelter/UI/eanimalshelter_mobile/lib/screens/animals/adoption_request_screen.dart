@@ -189,16 +189,23 @@ class _AdoptionRequestScreenState
 
       Navigator.pop(context);
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(
-        SnackBar(
-          content: Text(
-            e.toString().replaceAll(
-              "Exception: ",
-              "",
+      if (!mounted) return;
+      final errorMessage = e.toString().replaceAll(
+        "Exception: ",
+        "",
+      );
+
+      await showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text("Submission failed"),
+          content: Text(errorMessage),
+          actions: [
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("OK"),
             ),
-          ),
+          ],
         ),
       );
     } finally {

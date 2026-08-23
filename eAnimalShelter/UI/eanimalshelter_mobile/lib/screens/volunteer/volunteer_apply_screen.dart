@@ -135,17 +135,22 @@ class _VolunteerApplyScreenState
       );
     } catch (e) {
       if (!mounted) return;
+      final errorMessage = e.toString().replaceFirst(
+        "Exception: ",
+        "",
+      );
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(
-        SnackBar(
-          content: Text(
-            e.toString().replaceFirst(
-              "Exception: ",
-              "",
+      await showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text("Application failed"),
+          content: Text(errorMessage),
+          actions: [
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("OK"),
             ),
-          ),
+          ],
         ),
       );
     }

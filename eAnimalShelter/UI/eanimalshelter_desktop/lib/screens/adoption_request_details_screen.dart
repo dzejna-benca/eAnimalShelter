@@ -97,13 +97,19 @@ class _AdoptionRequestDetailsScreenState
 
       if (!mounted) return;
 
-      Navigator.pop(context, true);
+      MessageHelper.showSuccess(
+      context,
+      "Adoption request approved successfully.",
+    );
+
+    Navigator.pop(context, true);
     } catch (e) {
       if (!mounted) return;
 
       MessageHelper.showError(
         context,
-        e.toString(),
+        e.toString()
+            .replaceFirst("Exception: ", ""),
       );
     }
   }
@@ -130,13 +136,19 @@ class _AdoptionRequestDetailsScreenState
 
       if (!mounted) return;
 
+      MessageHelper.showSuccess(
+        context,
+        "Adoption request rejected successfully.",
+      );
+
       Navigator.pop(context, true);
     } catch (e) {
       if (!mounted) return;
 
       MessageHelper.showError(
         context,
-        e.toString(),
+        e.toString()
+            .replaceFirst("Exception: ", ""),
       );
     }
   }

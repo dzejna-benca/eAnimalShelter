@@ -79,5 +79,36 @@ namespace eAnimalShelter.Services
 
             return await base.InsertAsync(request);
         }
+        public override async Task<AnimalSpeciesResponse> UpdateAsync(
+            int id,
+            AnimalSpeciesUpdateRequest request)
+        {
+            await _updateValidator.ValidateAndThrowAsync(request);
+
+            var entity = await _dbContext.AnimalSpecies
+                .FirstOrDefaultAsync(x => x.SpeciesId == id);
+
+            if (entity == null)
+            {
+                throw new KeyNotFoundException(
+                    $"AnimalSpecies with id {id} not found.");
+            }
+
+            var exists = await _dbContext.AnimalSpecies.AnyAsync(x =>
+                x.SpeciesId != id &&
+                x.SpeciesName.ToLower() == request.SpeciesName.Trim().ToLower());
+
+            if (exists)
+            {
+                throw new ClientException(
+                    $"Species '{request.SpeciesName}' already exists.");
+            }
+
+            entity.SpeciesName = request.SpeciesName;
+
+            await _dbContext.SaveChangesAsync();
+
+            return _mapper.Map<AnimalSpeciesResponse>(entity);
+        }
     }
 }

@@ -1,4 +1,5 @@
 using eAnimalShelter.Model.Enums;
+using eAnimalShelter.Model.Exceptions;
 using eAnimalShelter.Model.Requests;
 using eAnimalShelter.Model.Responses;
 using eAnimalShelter.Model.SearchObjects;
@@ -8,7 +9,6 @@ using FluentValidation;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Stripe;
 using System.IO;
 
@@ -23,17 +23,17 @@ namespace eAnimalShelter.Services
         IDonationService
     {
         private readonly IAuthenticatedUserAccessor _authenticatedUserAccessor;
-        private readonly IConfiguration _configuration;
         private readonly IWebHostEnvironment _env;
         private readonly IPdfService _pdfService;
+        private readonly IValidator<CreatePaymentIntentRequest> _paymentIntentValidator;
 
         public DonationService(
             eAnimalShelterDbContext dbContext,
             MapsterMapper.IMapper mapper,
             IValidator<DonationInsertRequest> insertValidator,
             IValidator<DonationUpdateRequest> updateValidator,
+            IValidator<CreatePaymentIntentRequest> paymentIntentValidator,
             IAuthenticatedUserAccessor authenticatedUserAccessor,
-            IConfiguration configuration,
             IWebHostEnvironment env,
             IPdfService pdfService)
             : base(
@@ -43,9 +43,9 @@ namespace eAnimalShelter.Services
                 updateValidator)
         {
             _authenticatedUserAccessor = authenticatedUserAccessor;
-            _configuration = configuration;
             _env = env;
             _pdfService = pdfService;
+            _paymentIntentValidator = paymentIntentValidator;
         }
 
         protected override IQueryable<Donation> ApplyFilters(
@@ -153,7 +153,7 @@ namespace eAnimalShelter.Services
 
             entity.UserId = _authenticatedUserAccessor.GetUserId()
                 ?? throw new UnauthorizedAccessException(
-                    "Authenticated user not found.");
+                    "You must be logged in to perform this action.");
 
             entity.TransactionStatus = DonationStatus.Pending;
 
@@ -237,8 +237,7 @@ namespace eAnimalShelter.Services
         public async Task<CreatePaymentIntentResponse> CreatePaymentIntentAsync(
             CreatePaymentIntentRequest request)
         {
-            Stripe.StripeConfiguration.ApiKey =
-                _configuration["Stripe:SecretKey"];
+            await _paymentIntentValidator.ValidateAndThrowAsync(request);
 
             var paymentIntentService =
                 new Stripe.PaymentIntentService();
@@ -260,7 +259,7 @@ namespace eAnimalShelter.Services
             var donation = new Donation
             {
                 UserId = _authenticatedUserAccessor.GetUserId()
-                    ?? throw new UnauthorizedAccessException(),
+                    ?? throw new UnauthorizedAccessException("You must be logged in to perform this action."),
 
                 Amount = request.Amount,
 
@@ -293,19 +292,19 @@ namespace eAnimalShelter.Services
 
             if (donation == null)
                 throw new KeyNotFoundException("Donation not found.");
-
+            
             if (string.IsNullOrWhiteSpace(donation.ReceiptPdfPath))
                 throw new FileNotFoundException("Receipt not found.");
 
             var userId = _authenticatedUserAccessor.GetUserId();
 
             if (!userId.HasValue)
-                throw new UnauthorizedAccessException();
+                throw new UnauthorizedAccessException("You must be logged in to perform this action.");
 
             var isAdmin = _authenticatedUserAccessor.IsInRole("Admin");
 
             if (!isAdmin && donation.UserId != userId.Value)
-                throw new UnauthorizedAccessException();
+                throw new UnauthorizedAccessException("You are not allowed to access this donation receipt.");
 
             var relativePath = donation.ReceiptPdfPath.TrimStart('/');
 
@@ -314,7 +313,7 @@ namespace eAnimalShelter.Services
                 relativePath.Replace('/', Path.DirectorySeparatorChar));
 
             if (!System.IO.File.Exists(fullPath))
-                throw new FileNotFoundException();
+                throw new FileNotFoundException("Receipt file not found.");
 
             return (
                 await System.IO.File.ReadAllBytesAsync(fullPath),
@@ -323,22 +322,38 @@ namespace eAnimalShelter.Services
         }
         public async Task ConfirmPaymentAsync(int donationId)
         {
-            StripeConfiguration.ApiKey =
-                _configuration["Stripe:SecretKey"];
 
             var donation = await _dbContext.Donations
                 .FirstOrDefaultAsync(x => x.DonationId == donationId);
 
             if (donation == null)
-                throw new KeyNotFoundException();
+                throw new KeyNotFoundException($"Donation with id {donationId} not found.");
+            var userId = _authenticatedUserAccessor.GetUserId();
+
+            if (!userId.HasValue)
+                throw new UnauthorizedAccessException("You must be logged in to perform this action.");
+
+            var isAdmin = _authenticatedUserAccessor.IsInRole("Admin");
+
+            if (!isAdmin && donation.UserId != userId.Value)
+                throw new UnauthorizedAccessException("You are not allowed to confirm this payment.");
 
             var paymentIntentService = new PaymentIntentService();
+            if (string.IsNullOrWhiteSpace(donation.StripePaymentIntentId))
+             {
+                    throw new ClientException(
+                        "No Stripe payment was found for this donation."
+                    );
+                }
 
             var paymentIntent = await paymentIntentService.GetAsync(
                 donation.StripePaymentIntentId);
+            Console.WriteLine(
+                $"Stripe status: {paymentIntent.Status}"
+            );
 
             if (paymentIntent.Status != "succeeded")
-                throw new Exception("Payment has not been completed.");
+                throw new ClientException("Payment has not been successfully completed.");
 
             if (donation.TransactionStatus == DonationStatus.Successful)
                 return;
@@ -347,10 +362,21 @@ namespace eAnimalShelter.Services
             donation.DonationDate = DateTime.UtcNow;
             donation.PaymentMethod = "Credit Card";
 
-            donation.ReceiptPdfPath =
-                await _pdfService.GenerateDonationReceiptAsync(donation);
+           await _dbContext.SaveChangesAsync();
 
-            await _dbContext.SaveChangesAsync();
+            try
+            {
+                donation.ReceiptPdfPath =
+                    await _pdfService.GenerateDonationReceiptAsync(donation);
+
+                await _dbContext.SaveChangesAsync();
+            }
+            catch(Exception ex)
+            {
+                Console.WriteLine(
+                    $"PDF generation failed: {ex.Message}"
+                );
+            }
         }
     }
 }

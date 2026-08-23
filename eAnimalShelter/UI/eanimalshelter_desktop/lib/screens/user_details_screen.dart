@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../models/user.dart';
 import '../providers/user_provider.dart';
+import '../utils/message_helper.dart';
 import '../widgets/master_screen.dart';
 
 class UserDetailsScreen extends StatefulWidget {
@@ -44,9 +45,10 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
-      );
+      MessageHelper.showError(
+      context,
+      e.toString().replaceFirst("Exception: ", ""),
+    );
     }
   }
 

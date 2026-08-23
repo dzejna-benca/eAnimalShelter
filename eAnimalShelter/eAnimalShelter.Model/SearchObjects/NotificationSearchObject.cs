@@ -6,8 +6,6 @@ namespace eAnimalShelter.Model.SearchObjects
     {
         public int? UserId { get; set; }
 
-        public int? TargetRoleId { get; set; }
-
         public NotificationType? Type { get; set; }
 
         public bool? IsRead { get; set; }

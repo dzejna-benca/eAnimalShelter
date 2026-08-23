@@ -4,6 +4,7 @@ using eAnimalShelter.Model.SearchObjects;
 using eAnimalShelter.Services.Database;
 using eAnimalShelter.Services.Interfaces;
 using eAnimalShelter.WebAPI.Controllers;
+using eAnimalShelter.WebAPI.Helpers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -69,8 +70,9 @@ public class AnnouncementController : BaseCRUDController<
                 Directory.CreateDirectory(uploadsFolder);
             }
 
-            var fileName =
-                $"{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
+            await ImageUploadValidator.ValidateAsync(file);
+
+            var fileName = ImageUploadValidator.GenerateFileName(file);
 
             var filePath = Path.Combine(
                 uploadsFolder,

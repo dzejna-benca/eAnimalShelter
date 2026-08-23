@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
-
+import 'package:http_parser/http_parser.dart';
+import 'package:mime/mime.dart';
 import 'package:http/http.dart' as http;
 
 import '../models/announcement.dart';
@@ -26,10 +27,15 @@ class AnnouncementProvider
     request.headers["Authorization"] =
         "Bearer ${AuthProvider.accessToken}";
 
+    final mimeType = lookupMimeType(image.path);
+
     request.files.add(
       await http.MultipartFile.fromPath(
         "file",
         image.path,
+        contentType: mimeType != null
+            ? MediaType.parse(mimeType)
+            : MediaType("image", "jpeg"),
       ),
     );
 

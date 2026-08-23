@@ -51,7 +51,8 @@ class _RegisterScreenState
   String?_addressError;
   String? _phoneError;
 
-  int _selectedRoleId = 3; // Client
+  UserRoleType _selectedRole =
+    UserRoleType.client; // Client
 
   Future<void> register() async {
   setState(() {
@@ -91,7 +92,7 @@ class _RegisterScreenState
   } else if (!RegExp(
     r'^[\w\-.]+@([\w-]+\.)+[\w-]{2,4}$',
   ).hasMatch(_emailController.text.trim())) {
-    _emailError = "Please enter a valid email";
+    _emailError = "Please enter a valid email,(example: user@example.com).";
     hasError = true;
   }
 
@@ -168,8 +169,7 @@ class _RegisterScreenState
                 _phoneController.text.trim(),
             address:
                 _addressController.text.trim(),
-            roleId:
-                _selectedRoleId,
+            role: _selectedRole,
           ),
         );
 
@@ -180,15 +180,19 @@ class _RegisterScreenState
       barrierDismissible: false,
       builder: (_) => AlertDialog(
         title: const Row(
-          children: [
-            Icon(
-              Icons.check_circle,
-              color: Colors.green,
+        children: [
+          Icon(
+            Icons.check_circle,
+            color: Colors.green,
+          ),
+          SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              "Registration completed",
             ),
-            SizedBox(width: 8),
-            Text("Success"),
-          ],
-        ),
+          ),
+        ],
+      ),
         content: const Text(
           "Your account has been created successfully. You can now log in.",
         ),
@@ -207,17 +211,17 @@ class _RegisterScreenState
 
     Navigator.pop(context);
   } catch (e) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(
-      SnackBar(
-        content: Text(
-          e.toString().replaceAll(
-            "Exception: ",
-            "",
-          ),
-        ),
-      ),
+    if (!mounted) return;
+    final errorMessage = e.toString().replaceAll(
+      "Exception: ",
+      "",
     );
+    content: Text(
+  errorMessage.isNotEmpty
+      ? errorMessage
+      : "Unable to create account. Please try again."
+  );
+
   } finally {
     if (mounted) {
       setState(() {
@@ -261,16 +265,16 @@ class _RegisterScreenState
   Widget _buildRoleCard({
     required String title,
     required IconData icon,
-    required int value,
+    required UserRoleType value,
   }) {
     final selected =
-        _selectedRoleId == value;
+    _selectedRole == value;
 
     return Expanded(
       child: GestureDetector(
         onTap: () {
           setState(() {
-            _selectedRoleId = value;
+            _selectedRole = value;
           });
         },
         child: AnimatedContainer(
@@ -505,7 +509,7 @@ class _RegisterScreenState
                         title: "Client",
                         icon:
                             Icons.favorite,
-                        value: 3,
+                         value: UserRoleType.client,
                       ),
                       const SizedBox(
                           width: 12),
@@ -514,7 +518,7 @@ class _RegisterScreenState
                             "Volunteer",
                         icon:
                             Icons.volunteer_activism,
-                        value: 2,
+                         value: UserRoleType.volunteer,
                       ),
                     ],
                   ),

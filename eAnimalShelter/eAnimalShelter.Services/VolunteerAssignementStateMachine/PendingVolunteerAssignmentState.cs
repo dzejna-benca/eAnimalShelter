@@ -25,7 +25,7 @@ namespace eAnimalShelter.Services.VolunteerAssignmentStateMachine
         {
             if (string.IsNullOrWhiteSpace(reason))
             {
-                throw new Exception(
+                throw new ClientException(
                     "Approval reason is required.");
             }
 

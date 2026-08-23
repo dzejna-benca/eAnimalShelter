@@ -47,37 +47,39 @@ class _LoginScreenState
       final authProvider =
           context.read<AuthProvider>();
 
-      final role =
-          await authProvider.login(
+      await authProvider.login(
         _usernameController.text.trim(),
         _passwordController.text,
       );
+      if(!mounted)return;
+
+
+      if(authProvider.role=="Client"){
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder:(_)=>
+            const ClientHomeScreen(),
+        ),
+      );
+
+      }
+
+
+      if(authProvider.role=="Volunteer"){
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder:(_)=>
+            const VolunteerHomeScreen(),
+        ),
+      );
+
+      }
 
       if (!mounted) return;
-
-      if (role == "Client") {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) =>
-                const ClientHomeScreen(),
-          ),
-        );
-      } else if (role ==
-          "Volunteer") {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) =>
-                const VolunteerHomeScreen(),
-          ),
-        );
-      } else {
-        setState(() {
-          _errorMessage =
-              "This account cannot use the mobile application.";
-        });
-      }
     } catch (_) {
       setState(() {
         _errorMessage =
