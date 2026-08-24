@@ -28,6 +28,7 @@ class _DashboardScreenState
     super.initState();
     loadData();
   }
+  String? _error;
 
   Future<void> loadData() async {
     try {
@@ -36,9 +37,13 @@ class _DashboardScreenState
       donationReport =
           await DonationProvider().getReport();
     } catch (e) {
-      debugPrint(e.toString());
+      _error = e.toString().replaceFirst(
+      "Exception: ",
+      "",
+    );
+   
     }
-
+    if (!mounted) return;
     setState(() {
       loading = false;
     });
@@ -49,17 +54,20 @@ class _DashboardScreenState
     return MasterScreen(
       title: "Dashboard",
       child: loading
-          ? const Center(
-              child:
-                  CircularProgressIndicator(),
-            )
-          : dashboard == null
-              ? const Center(
-                  child: Text(
-                    "Failed to load dashboard data",
-                  ),
-                )
-              : SingleChildScrollView(
+    ? const Center(
+        child: CircularProgressIndicator(),
+      )
+    : _error != null
+        ? Center(
+            child: Text(_error!),
+          )
+        : dashboard == null
+            ? const Center(
+                child: Text(
+                  "Failed to load dashboard data",
+                ),
+              )
+            : SingleChildScrollView(
                 child: Column(
                   children: [
                     // STATISTIKE

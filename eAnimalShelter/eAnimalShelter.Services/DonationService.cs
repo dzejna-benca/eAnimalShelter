@@ -348,9 +348,7 @@ namespace eAnimalShelter.Services
 
             var paymentIntent = await paymentIntentService.GetAsync(
                 donation.StripePaymentIntentId);
-            Console.WriteLine(
-                $"Stripe status: {paymentIntent.Status}"
-            );
+            
 
             if (paymentIntent.Status != "succeeded")
                 throw new ClientException("Payment has not been successfully completed.");
@@ -371,11 +369,11 @@ namespace eAnimalShelter.Services
 
                 await _dbContext.SaveChangesAsync();
             }
-            catch(Exception ex)
+            catch(Exception)
             {
-                Console.WriteLine(
-                    $"PDF generation failed: {ex.Message}"
-                );
+                throw new ClientException(
+                    "Payment confirmed, but failed to generate receipt PDF."
+                    );
             }
         }
     }

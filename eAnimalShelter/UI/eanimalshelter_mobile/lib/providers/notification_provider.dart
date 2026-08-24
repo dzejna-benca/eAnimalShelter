@@ -50,9 +50,7 @@ class NotificationProvider
       loadNotifications(),
       loadUnreadCount(),
     ]);
-  } catch (e) {
-    debugPrint(e.toString());
-  }
+  } catch (_) {}
 }
 
   Future<void> markAsRead(int id) async {

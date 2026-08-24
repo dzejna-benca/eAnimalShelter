@@ -68,13 +68,16 @@ class _AnimalsScreenState
       isLoading = false;
     });
     } catch (e) {
-      debugPrint(e.toString());
+  if (!mounted) return;
 
-      setState(() {
-        error = e.toString();
-        isLoading = false;
-      });
-    }
+  setState(() {
+    error = e.toString().replaceFirst(
+      "Exception: ",
+      "",
+    );
+    isLoading = false;
+  });
+}
   }
   Future<void> _loadFavorites() async {
   final provider =
